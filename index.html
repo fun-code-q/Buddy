@@ -237,6 +237,12 @@
     .thinking-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 0; }
     .dot { width: 10px; height: 10px; border-radius: 50%; }
     .dot.pending { background: #caa85a; }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .dot.pending { animation: pulse 1s ease-in-out infinite; }
     .dot.done { background: #3ad29f; }
     .dot.error { background: #ff6b6b; }
     .hidden { display: none; }
@@ -657,12 +663,7 @@
         const contentWrap = document.createElement('div');
         contentWrap.id = `think-content-${index}`;
         thinkPanel.appendChild(contentWrap);
-        thinkToggle.onclick = () => {
-          const isHidden = thinkPanel.classList.contains('hidden');
-          thinkPanel.classList.toggle('hidden');
-          thinkToggle.textContent = updateThinkingToggleText(index, !isHidden);
-          renderInlineThinking(index);
-        };
+        thinkToggle.onclick = () => toggleThinking(index);
         div.appendChild(thinkToggle);
         div.appendChild(thinkPanel);
       }
@@ -684,6 +685,7 @@
 
     // Per-turn metadata for thinking view and labels
     const runMeta = new Map(); // key: userIndex -> { startMs, endMs, models: string[], results: Record<string,string>, combined: string }
+    const runTimers = new Map(); // key: userIndex -> interval id
 
     function secondsBetween(startMs, endMs) {
       if (!startMs) return 0;
@@ -736,6 +738,38 @@
       combine.className = 'thinking-row';
       combine.innerHTML = `<div><strong>Buddy combine</strong></div><div><em>Merged overlapping points, resolved conflicts, and structured the final answer.</em></div>`;
       panel.appendChild(combine);
+    }
+
+    function startThinkingTimer(index) {
+      stopThinkingTimer(index);
+      const id = setInterval(() => {
+        const toggle = document.getElementById(`think-toggle-${index}`);
+        if (!toggle) return;
+        const panel = document.getElementById(`think-panel-${index}`);
+        const isOpen = panel && !panel.classList.contains('hidden');
+        toggle.textContent = updateThinkingToggleText(index, isOpen);
+      }, 1000);
+      runTimers.set(index, id);
+    }
+
+    function stopThinkingTimer(index) {
+      const id = runTimers.get(index);
+      if (id) {
+        clearInterval(id);
+        runTimers.delete(index);
+      }
+    }
+
+    function toggleThinking(index) {
+      const panel = document.getElementById(`think-panel-${index}`);
+      const toggle = document.getElementById(`think-toggle-${index}`);
+      if (!panel || !toggle) return;
+      const opening = panel.classList.contains('hidden');
+      panel.classList.toggle('hidden');
+      toggle.textContent = updateThinkingToggleText(index, opening);
+      if (opening) {
+        renderInlineThinking(index);
+      }
     }
 
     function renderProviders(outputs) {
@@ -879,9 +913,10 @@
       if (pendingTextFile) msg.files = [{ name: 'attachment.txt', type: 'text/plain', content: pendingTextFile.slice(0, 20000) }];
       
       history.push(msg);
-      // track run meta for this user turn
+      // track run meta for this user turn and start timer
       runMeta.set(userIndex, { startMs: Date.now(), models: null, results: null, combined: null });
       renderMessage('user', enriched, userIndex);
+      startThinkingTimer(userIndex);
       attachmentsEl.innerHTML = '';
       pendingImage = null;
       pendingTextFile = null;
@@ -922,6 +957,7 @@
         runMeta.set(userIndex, meta);
         history.push({ role: 'assistant', content: assistantContent, meta: { label } });
         renderMessage('assistant', assistantContent, aiIndex);
+        stopThinkingTimer(userIndex);
       } catch (e) {
         console.error("Send error:", e);
         const errorMsg = `Error: ${e.message || "Failed to get response"}`;
@@ -1028,6 +1064,7 @@
           runMeta.set(index, meta);
           history.push({ role: 'assistant', content: assistantContent, meta: { label } });
           renderMessage('assistant', assistantContent, aiIndex);
+          stopThinkingTimer(index);
         } catch (e) {
           console.error("Error after edit:", e);
         } finally { 
