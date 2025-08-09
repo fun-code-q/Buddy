@@ -281,6 +281,25 @@
     .thinking-toggle { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; color: var(--text); cursor: pointer; font-size: 12px; display: inline-block; }
     .thinking-panel-inline { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-top: 6px; }
     .thinking-panel-inline .thinking-row { font-style: italic; color: var(--accent-2); }
+    /* Builder UI */
+    .builder { margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+    .builder-controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border-bottom: 1px solid var(--border); }
+    .builder-main { display: grid; grid-template-columns: 280px 1fr; gap: 0; min-height: 420px; }
+    .project-tree { border-right: 1px solid var(--border); padding: 10px; overflow: auto; }
+    .tree-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+    .tree-item.active { background: rgba(106,166,255,0.14); }
+    .tree-folder { font-weight: 600; }
+    .tree-actions { margin-left: auto; display: inline-flex; gap: 6px; }
+    .right-pane { padding: 10px; display: grid; grid-template-rows: auto minmax(280px, 1fr) auto; gap: 8px; }
+    .editor-tabs { display: inline-flex; gap: 6px; }
+    .tab { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+    .tab.active { border-color: var(--accent); color: var(--accent); }
+    .editor-pane, .preview-pane { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    #codeEditor { width: 100%; height: 360px; background: #0b0d10; color: #e8eef5; border: none; outline: none; font-family: 'Fira Code', 'Consolas', monospace; padding: 12px; font-size: 14px; line-height: 1.5; }
+    .editor-bar { display: flex; gap: 8px; padding: 8px; border-top: 1px solid var(--border); }
+    .build-log { border: 1px dashed var(--border); border-radius: 8px; padding: 8px; max-height: 160px; overflow: auto; font-size: 13px; }
+    .log-item { margin: 4px 0; color: var(--muted); }
+    .log-item strong { color: var(--text); }
   </style>
 </head>
 <body>
@@ -332,6 +351,44 @@
     <div class="providers" id="providers" style="display:none"></div>
 
     <div class="bubble combined" id="combined" style="display:none"></div>
+
+    <div id="builder" class="builder">
+      <div class="builder-controls">
+        <button id="btnStartBuild" class="btn">🛠️ Build from prompt</button>
+        <button id="btnStopBuild" class="btn">■ Stop</button>
+        <button id="btnPreviewProject" class="btn">👁️ Preview</button>
+        <button id="btnDownloadZip" class="btn">⬇️ Download ZIP</button>
+        <button id="btnNewFile" class="btn">＋ New File</button>
+        <button id="btnNewFolder" class="btn">📁 New Folder</button>
+        <button id="btnDeleteSelected" class="btn">🗑️ Delete</button>
+        <button id="btnClearProject" class="btn" style="margin-left:auto">♻️ Clear Project</button>
+      </div>
+      <div class="builder-main">
+        <div id="projectTree" class="project-tree"></div>
+        <div class="right-pane">
+          <div>
+            <div class="editor-tabs">
+              <button id="tabEditor" class="tab active">Editor</button>
+              <button id="tabPreview" class="tab">Preview</button>
+            </div>
+          </div>
+          <div id="paneEditor" class="editor-pane">
+            <textarea id="codeEditor" spellcheck="false" placeholder="Select a file to edit..."></textarea>
+            <div class="editor-bar">
+              <span id="currentPath" class="small muted" style="flex:1 1 auto">No file selected</span>
+              <button id="btnSaveFile" class="btn">💾 Save</button>
+            </div>
+          </div>
+          <div id="panePreview" class="preview-pane" style="display:none">
+            <iframe id="projectPreview" class="preview-frame"></iframe>
+          </div>
+          <div>
+            <div class="small muted" style="margin-bottom:4px">Build log</div>
+            <div id="buildLog" class="build-log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="spacer"></div>
@@ -346,11 +403,13 @@
           <path d="M3 11L21 3L13 21L11 13L3 11Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
+      <button class="send" id="buildBtn" title="Build from prompt">🛠️</button>
     </div>
     <div id="attachments" class="chips"></div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     // Removed legacy provider map; we dynamically probe supported models
 
@@ -379,6 +438,330 @@
     let history = [];
     let selectedModels = null;
     let hasUserModelSelection = false;
+
+    // ------- Builder state -------
+    const projectTreeEl = document.getElementById('projectTree');
+    const codeEditorEl = document.getElementById('codeEditor');
+    const currentPathEl = document.getElementById('currentPath');
+    const paneEditorEl = document.getElementById('paneEditor');
+    const panePreviewEl = document.getElementById('panePreview');
+    const tabEditorEl = document.getElementById('tabEditor');
+    const tabPreviewEl = document.getElementById('tabPreview');
+    const projectPreviewEl = document.getElementById('projectPreview');
+    const buildLogEl = document.getElementById('buildLog');
+    const btnStartBuild = document.getElementById('btnStartBuild');
+    const btnStopBuild = document.getElementById('btnStopBuild');
+    const btnPreviewProject = document.getElementById('btnPreviewProject');
+    const btnDownloadZip = document.getElementById('btnDownloadZip');
+    const btnNewFile = document.getElementById('btnNewFile');
+    const btnNewFolder = document.getElementById('btnNewFolder');
+    const btnDeleteSelected = document.getElementById('btnDeleteSelected');
+    const btnClearProject = document.getElementById('btnClearProject');
+    const btnSaveFile = document.getElementById('btnSaveFile');
+    const buildBtn = document.getElementById('buildBtn');
+
+    let projectFiles = {}; // path -> content
+    let selectedPath = null; // current file or folder path
+    let isBuilding = false;
+    let buildAbort = { aborted: false };
+
+    function persistProject() {
+      try { localStorage.setItem('buddy_project_files', JSON.stringify(projectFiles)); } catch {}
+    }
+    function loadProject() {
+      try {
+        const raw = localStorage.getItem('buddy_project_files');
+        if (raw) projectFiles = JSON.parse(raw) || {};
+      } catch { projectFiles = {}; }
+    }
+    function addLog(msg) {
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.innerHTML = msg;
+      buildLogEl.appendChild(div);
+      buildLogEl.scrollTop = buildLogEl.scrollHeight;
+    }
+    function setBuilderBusy(b) {
+      isBuilding = b;
+      btnStartBuild.disabled = b;
+      btnStopBuild.disabled = !b;
+      buildBtn.disabled = b;
+    }
+    function ensureFolders(path) {
+      const parts = path.split('/');
+      let cur = '';
+      for (let i = 0; i < parts.length - 1; i++) {
+        cur = cur ? cur + '/' + parts[i] : parts[i];
+        if (!(cur in projectFiles)) projectFiles[cur] = null; // folder marker: null content
+      }
+    }
+    function isFolder(path) { return projectFiles[path] === null; }
+    function listChildren(folder) {
+      const prefix = folder ? folder + '/' : '';
+      const children = new Set();
+      Object.keys(projectFiles).forEach(p => {
+        if (folder && p === folder) return; // skip self
+        if (!folder && p.indexOf('/') === -1) { children.add(p.split('/')[0]); return; }
+        if (p.startsWith(prefix)) {
+          const rest = p.slice(prefix.length);
+          const head = rest.split('/')[0];
+          if (head) children.add(head);
+        }
+      });
+      return Array.from(children).sort((a,b)=>a.localeCompare(b));
+    }
+    function renderProjectTree() {
+      function renderNode(folderPath, container) {
+        const items = listChildren(folderPath);
+        items.forEach(name => {
+          const full = folderPath ? folderPath + '/' + name : name;
+          const hasSlash = Object.keys(projectFiles).some(p => p.startsWith(full + '/'));
+          const isDir = hasSlash || isFolder(full);
+          const row = document.createElement('div');
+          row.className = 'tree-item' + (selectedPath === full ? ' active' : '');
+          row.innerHTML = isDir ? `📁 <span class="tree-folder">${name}</span>` : `📄 <span>${name}</span>`;
+          row.onclick = () => { selectPath(full); };
+          container.appendChild(row);
+          if (isDir) {
+            const sub = document.createElement('div');
+            sub.style.marginLeft = '16px';
+            container.appendChild(sub);
+            renderNode(full, sub);
+          }
+        });
+      }
+      projectTreeEl.innerHTML = '';
+      const rootContainer = document.createElement('div');
+      projectTreeEl.appendChild(rootContainer);
+      renderNode('', rootContainer);
+    }
+    function selectPath(path) {
+      selectedPath = path;
+      renderProjectTree();
+      currentPathEl.textContent = path || 'No file selected';
+      if (path && projectFiles[path] !== null && projectFiles[path] !== undefined) {
+        // file
+        codeEditorEl.value = String(projectFiles[path] || '');
+      } else {
+        codeEditorEl.value = '';
+      }
+    }
+    function saveCurrentFile() {
+      if (!selectedPath || isFolder(selectedPath)) return;
+      projectFiles[selectedPath] = codeEditorEl.value;
+      persistProject();
+      addLog(`<strong>Saved:</strong> ${escapeHtml(selectedPath)}`);
+    }
+    function newFile() {
+      const base = prompt('New file path (e.g., src/app.js):');
+      if (!base) return;
+      ensureFolders(base);
+      if (!(base in projectFiles)) projectFiles[base] = '';
+      persistProject();
+      renderProjectTree();
+      selectPath(base);
+    }
+    function newFolder() {
+      const base = prompt('New folder path (e.g., src/components):');
+      if (!base) return;
+      ensureFolders(base + '/x');
+      projectFiles[base] = null;
+      persistProject();
+      renderProjectTree();
+      selectPath(base);
+    }
+    function deleteSelected() {
+      if (!selectedPath) return;
+      if (!confirm(`Delete ${selectedPath}?`)) return;
+      if (isFolder(selectedPath)) {
+        // remove folder and all descendants
+        Object.keys(projectFiles).forEach(p => { if (p === selectedPath || p.startsWith(selectedPath + '/')) delete projectFiles[p]; });
+      } else {
+        delete projectFiles[selectedPath];
+      }
+      persistProject();
+      selectedPath = null;
+      renderProjectTree();
+      selectPath(null);
+    }
+    function clearProject() {
+      if (!confirm('Clear entire project?')) return;
+      projectFiles = {};
+      persistProject();
+      renderProjectTree();
+      selectPath(null);
+      addLog('<strong>Project cleared.</strong>');
+    }
+    function inlineAssets(html, baseFolder) {
+      if (!html) return html;
+      // Inline <link rel="stylesheet" href="...">
+      html = html.replace(/<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi, (m, href) => {
+        const path = (baseFolder ? baseFolder + '/' : '') + href.replace(/^\.\//,'');
+        const content = projectFiles[href] ?? projectFiles[path];
+        if (content != null) {
+          return `<style>\n${content}\n</style>`;
+        }
+        return m;
+      });
+      // Inline <script src="...">
+      html = html.replace(/<script[^>]*src=["']([^"']+)["'][^>]*><\/script>/gi, (m, src) => {
+        const path = (baseFolder ? baseFolder + '/' : '') + src.replace(/^\.\//,'');
+        const content = projectFiles[src] ?? projectFiles[path];
+        if (content != null) {
+          return `<script>\n${content}\n<\/script>`;
+        }
+        return m;
+      });
+      return html;
+    }
+    function previewProject() {
+      let entry = projectFiles['index.html'] || projectFiles['public/index.html'] || '';
+      if (!entry) {
+        const html = '<!doctype html><html><body><p style="font-family:sans-serif">No index.html found.</p></body></html>';
+        const doc = projectPreviewEl.contentWindow.document; doc.open(); doc.write(html); doc.close(); tabPreviewEl.click(); return;
+      }
+      entry = inlineAssets(entry, '');
+      const doc = projectPreviewEl.contentWindow.document;
+      doc.open();
+      doc.write(entry);
+      doc.close();
+      tabPreviewEl.click();
+    }
+    async function downloadZip() {
+      if (!window.JSZip) { alert('Zip library not loaded.'); return; }
+      const zip = new JSZip();
+      for (const [p, content] of Object.entries(projectFiles)) {
+        if (content === null) continue; // folder
+        zip.file(p, content || '');
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'project.zip'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+
+    // Tabs
+    tabEditorEl.onclick = () => { tabEditorEl.classList.add('active'); tabPreviewEl.classList.remove('active'); paneEditorEl.style.display='block'; panePreviewEl.style.display='none'; };
+    tabPreviewEl.onclick = () => { tabPreviewEl.classList.add('active'); tabEditorEl.classList.remove('active'); paneEditorEl.style.display='none'; panePreviewEl.style.display='block'; };
+
+    btnSaveFile.onclick = saveCurrentFile;
+    btnNewFile.onclick = newFile;
+    btnNewFolder.onclick = newFolder;
+    btnDeleteSelected.onclick = deleteSelected;
+    btnClearProject.onclick = clearProject;
+    btnPreviewProject.onclick = previewProject;
+    btnDownloadZip.onclick = downloadZip;
+
+    // ------- Orchestrated builder pipeline -------
+    function extractJson(text) {
+      if (!text) return null;
+      const fence = text.match(/```json\n([\s\S]*?)```/i);
+      try { return JSON.parse(fence ? fence[1] : text); } catch { return null; }
+    }
+    function firstCodeFrom(text) {
+      const m = text && text.match(/```(\w+)?\n([\s\S]*?)```/);
+      return m ? { lang: (m[1]||'').toLowerCase(), code: m[2]||'' } : null;
+    }
+    async function orchestrateBuild(userPrompt) {
+      setBuilderBusy(true); buildAbort = { aborted: false }; buildLogEl.innerHTML = '';
+      addLog('<strong>Orchestrator:</strong> analyzing request...');
+      const planMsgs = [
+        { role: 'system', content: 'You are the Orchestrator for a multi-agent coding system (like v0.dev/bolt/lovable) focused ONLY on software development. Output a tight JSON: { goals: string[], tasks: string[], requiresSearch: boolean, techStack: string[], notes?: string }' },
+        ...buildMessages(history, userPrompt)
+      ];
+      const planText = await askModel(planMsgs, null);
+      const plan = extractJson(planText) || { goals: [], tasks: [], requiresSearch: false, techStack: [], notes: '' };
+      addLog(`<strong>Plan:</strong> ${escapeHtml(JSON.stringify(plan))}`);
+      if (buildAbort.aborted) return;
+
+      // Researcher
+      let researchNotes = '';
+      if (plan.requiresSearch) {
+        addLog('<strong>Researcher:</strong> gathering context...');
+        const researchMsgs = [
+          { role: 'system', content: 'You are a Web Researcher. Without fabricating, compile a concise brief with references (titles and URLs) that will help implement the requested app. If unsure, state assumptions.' },
+          { role: 'user', content: `Context to research: ${userPrompt}\n\nTasks: ${plan.tasks?.join('\n')}` }
+        ];
+        researchNotes = extractText(await askModel(researchMsgs, null));
+        addLog(`<strong>Research brief:</strong> ${escapeHtml(researchNotes.slice(0, 1200))}`);
+      }
+      if (buildAbort.aborted) return;
+
+      // Architect
+      addLog('<strong>Architect:</strong> proposing structure...');
+      const archMsgs = [
+        { role: 'system', content: 'You are a Software Architect. Output ONLY JSON describing the project structure. Schema: { files: Array<{ path: string, description?: string }>, entry?: string, notes?: string }. Prefer web projects with index.html and a src folder. No code content now.' },
+        { role: 'user', content: `Prompt: ${userPrompt}\n\nGoals: ${JSON.stringify(plan.goals)}\nTech stack: ${JSON.stringify(plan.techStack)}\nResearch: ${researchNotes || 'N/A'}` }
+      ];
+      const archText = await askModel(archMsgs, null);
+      const arch = extractJson(archText) || { files: [{ path: 'index.html' }], entry: 'index.html' };
+      const files = Array.isArray(arch.files) ? arch.files.map(f=>f.path) : ['index.html'];
+      // create folders and empty files
+      for (const p of files) { ensureFolders(p); if (!(p in projectFiles) || projectFiles[p] === null) projectFiles[p] = ''; }
+      persistProject(); renderProjectTree();
+      addLog(`<strong>Created</strong> ${files.length} files.`);
+      if (buildAbort.aborted) return;
+
+      // Coder
+      addLog('<strong>Coder:</strong> generating code...');
+      for (const p of files) {
+        if (buildAbort.aborted) return;
+        addLog(`Generating <strong>${escapeHtml(p)}</strong>...`);
+        const ext = p.split('.').pop();
+        const langHint = ext === 'js' ? 'javascript' : ext === 'ts' ? 'typescript' : ext === 'css' ? 'css' : ext === 'html' ? 'html' : '';
+        const coderMsgs = [
+          { role: 'system', content: 'You are a Senior Software Engineer. Generate COMPLETE code for the requested file only. Return ONLY one fenced code block with correct language. No explanations.' },
+          { role: 'user', content: `Build an app as described: ${userPrompt}\nGoals: ${JSON.stringify(plan.goals)}\nTech: ${JSON.stringify(plan.techStack)}\nFile to implement: ${p}${arch.notes ? `\nArchitecture notes: ${arch.notes}` : ''}${researchNotes ? `\nRelevant research: ${researchNotes}` : ''}` }
+        ];
+        const codeResp = await askModel(coderMsgs, null);
+        const block = firstCodeFrom(codeResp);
+        const content = block ? block.code : String(codeResp || '');
+        // Progressive write for live feeling
+        await writeFileProgressive(p, content);
+        if (!selectedPath) selectPath(p); // select first file
+      }
+      addLog('<strong>Coder:</strong> done.');
+
+      // Guide and Preview
+      const guideMsgs = [
+        { role: 'system', content: 'You are the Build Guide. Summarize what was created and how to run it locally in 5-7 bullets.' },
+        { role: 'user', content: `Files: ${Object.keys(projectFiles).filter(p=>projectFiles[p]!==null).join(', ')}` }
+      ];
+      const guideText = await askModel(guideMsgs, null);
+      const aiIndex = history.length;
+      history.push({ role: 'assistant', content: guideText, meta: { label: 'Guide' } });
+      renderMessage('assistant', guideText, aiIndex);
+      previewProject();
+      setBuilderBusy(false);
+    }
+    btnStartBuild.onclick = () => { const q = queryEl.value.trim(); if (!q) { alert('Enter a prompt first'); return; } orchestrateBuild(q); };
+    buildBtn.onclick = () => { const q = queryEl.value.trim(); if (!q) { alert('Enter a prompt first'); return; } orchestrateBuild(q); };
+    btnStopBuild.onclick = () => { buildAbort.aborted = true; setBuilderBusy(false); addLog('<strong>Build aborted.</strong>'); };
+
+    // Load project on boot
+    loadProject();
+    renderProjectTree();
+
+    async function writeFileProgressive(path, content) {
+      ensureFolders(path);
+      projectFiles[path] = '';
+      persistProject();
+      renderProjectTree();
+      const lines = String(content || '').split(/\r?\n/);
+      const chunkSize = 6;
+      for (let i = 0; i < lines.length; i += chunkSize) {
+        if (buildAbort.aborted) return;
+        const chunk = lines.slice(i, i + chunkSize).join('\n') + (i + chunkSize < lines.length ? '\n' : '');
+        projectFiles[path] += chunk;
+        if (selectedPath === path) {
+          codeEditorEl.value = projectFiles[path];
+        }
+        persistProject();
+        await new Promise(r => setTimeout(r, 20));
+      }
+      addLog(`<strong>Wrote:</strong> ${escapeHtml(path)} (${lines.length} lines)`);
+    }
 
     function escapeHtml(str) {
       return str
