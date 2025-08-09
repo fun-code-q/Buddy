@@ -324,11 +324,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
-    const PROVIDER_MODELS = {
-      chatgpt: 'gpt-4o',
-      deepseek: 'deepseek-chat',
-      grok: 'x-ai/grok-4',
-    };
+    // Removed legacy provider map; we dynamically probe supported models
 
     const chatEl = document.getElementById('chat');
     const providersEl = document.getElementById('providers');
@@ -443,12 +439,56 @@
       }
     }
 
-    const ALL_MODELS = [
-      // Keep a small, widely supported set by default
-      'gpt-4o',
-      'deepseek-chat',
-      'x-ai/grok-4'
+    const CANDIDATE_MODELS = [
+      // Broad set; runtime probe will keep only working ones
+      'gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
+      'o3-mini', 'o1-mini',
+      'deepseek-chat', 'deepseek-reasoner',
+      'x-ai/grok-4',
+      'meta-llama/llama-3.3-70b-instruct',
+      'claude-3-5-sonnet'
     ];
+
+    let supportedModels = new Set();
+
+    function loadSupportedModels() {
+      try {
+        const raw = localStorage.getItem('buddy_supported_models');
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        if (!obj || !Array.isArray(obj.models)) return;
+        supportedModels = new Set(obj.models);
+      } catch {}
+    }
+
+    function saveSupportedModels() {
+      try {
+        localStorage.setItem('buddy_supported_models', JSON.stringify({ models: Array.from(supportedModels) }));
+      } catch {}
+    }
+
+    async function probeModel(modelId) {
+      try {
+        const msgs = [ { role: 'user', content: 'ok?' } ];
+        const text = await askModel(msgs, modelId);
+        return Boolean(text && !/^Error:/i.test(String(text)));
+      } catch {
+        return false;
+      }
+    }
+
+    async function ensureSupportedModels() {
+      if (supportedModels.size > 0) return;
+      const probes = await Promise.all(
+        CANDIDATE_MODELS.map(async (m) => ({ m, ok: await probeModel(m) }))
+      );
+      supportedModels = new Set(probes.filter(x => x.ok).map(x => x.m));
+      if (supportedModels.size === 0) {
+        // As a last resort, allow unspecified-model calls
+        supportedModels = new Set([]);
+      }
+      saveSupportedModels();
+    }
 
     async function runParallel(modelIds, historyArr, query, summarizer) {
       const messages = buildMessages(historyArr, query);
@@ -477,7 +517,8 @@
       
       btnThinking.classList.remove('hidden');
       
-      for (const model of modelIds) {
+      const ids = (modelIds && modelIds.length) ? modelIds : [];
+      for (const model of ids) {
         tasks.push(
           askModel(messages, model)
             .then((c) => {
@@ -499,7 +540,9 @@
         );
       }
       
-      await Promise.all(tasks);
+      if (tasks.length) {
+        await Promise.all(tasks);
+      }
       
       try {
         const combined = await summarizeCombined(historyArr, query, results, summarizer);
@@ -682,6 +725,19 @@
       }); 
     }
 
+    async function ocrImage(dataUrl) {
+      try {
+        return await puter.ai.img2txt(dataUrl);
+      } catch (e1) {
+        try {
+          return await puter.ai.img2txt({ image: dataUrl });
+        } catch (e2) {
+          console.error('Image OCR error:', e2);
+          return null;
+        }
+      }
+    }
+
     async function send() {
       const q = queryEl.value.trim();
       if (!q) return;
@@ -691,12 +747,8 @@
 
       let enriched = q;
       if (pendingImage) {
-        try {
-          const text = await puter.ai.img2txt(pendingImage);
-          if (text) enriched += `\n\n[Image OCR]:\n${text}`;
-        } catch (e) {
-          console.error("Image OCR error:", e);
-        }
+        const text = await ocrImage(pendingImage);
+        if (text) enriched += `\n\n[Image OCR]:\n${text}`;
       }
       if (pendingTextFile) {
         enriched += `\n\n[Attached text]:\n${pendingTextFile.slice(0, 20000)}`;
@@ -714,8 +766,10 @@
       pendingTextFile = null;
 
       try {
-        const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS)).filter(m => ALL_MODELS.includes(m));
-        const summarizerModel = ALL_MODELS.includes('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || 'gpt-4o');
+        await ensureSupportedModels();
+        const baseList = supportedModels.size ? Array.from(supportedModels) : [];
+        const modelsToUse = Array.from(selectedModels || new Set(baseList)).filter(m => !supportedModels.size || supportedModels.has(m));
+        const summarizerModel = (supportedModels.has('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || null));
         const result = await runParallel(modelsToUse, history, enriched, summarizerModel);
         renderProviders(result);
         renderCombined(result.combined);
@@ -812,8 +866,10 @@
       (async () => {
         sendBtn.disabled = true;
       try {
-          const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS)).filter(m => ALL_MODELS.includes(m));
-          const summarizerModel = ALL_MODELS.includes('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || 'gpt-4o');
+          await ensureSupportedModels();
+          const baseList = supportedModels.size ? Array.from(supportedModels) : [];
+          const modelsToUse = Array.from(selectedModels || new Set(baseList)).filter(m => !supportedModels.size || supportedModels.has(m));
+          const summarizerModel = (supportedModels.has('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || null));
           const result = await runParallel(modelsToUse, history, newText, summarizerModel);
           renderProviders(result);
           renderCombined(result.combined);
@@ -868,15 +924,14 @@
         const st = JSON.parse(raw);
         conversations = Array.isArray(st.conversations) ? st.conversations : [];
         activeConversationId = st.activeConversationId || null;
-        selectedModels = new Set(
-          Array.isArray(st.selectedModels) && st.selectedModels.length ? 
-          st.selectedModels : 
-          ALL_MODELS
-        );
+        const base = supportedModels.size ? Array.from(supportedModels) : CANDIDATE_MODELS;
+        const restored = Array.isArray(st.selectedModels) && st.selectedModels.length ? st.selectedModels : base;
+        selectedModels = new Set(restored.filter(m => !supportedModels.size || supportedModels.has(m)));
       } catch {
         conversations = [];
         activeConversationId = null;
-        selectedModels = new Set(ALL_MODELS);
+        const base = supportedModels.size ? Array.from(supportedModels) : CANDIDATE_MODELS;
+        selectedModels = new Set(base);
       }
     }
 
@@ -1058,15 +1113,16 @@
 
     function renderModelList() {
       modelList.innerHTML = '';
-      for (const mid of ALL_MODELS) {
+      const list = supportedModels.size ? Array.from(supportedModels) : CANDIDATE_MODELS;
+      for (const mid of list) {
         const row = document.createElement('label'); 
         row.className='model-row';
         
         const cb = document.createElement('input'); 
         cb.type='checkbox'; 
-        cb.checked = (selectedModels||new Set(ALL_MODELS)).has(mid);
+        cb.checked = (selectedModels||new Set(list)).has(mid);
         cb.onchange = () => { 
-          if (!selectedModels) selectedModels = new Set(ALL_MODELS); 
+          if (!selectedModels) selectedModels = new Set(list); 
           if (cb.checked) selectedModels.add(mid); 
           else selectedModels.delete(mid); 
           saveState(); 
@@ -1107,13 +1163,17 @@
     });
 
     // Initialize the app
-    loadState();
-    ensureDefaultConversation();
-    history = (conversations.find(c => c.id === activeConversationId) || conversations[0]).history;
-    activeConversationId = (conversations.find(c => c.id === activeConversationId) || conversations[0]).id;
-    renderConversationList();
-    renderModelList();
-    setActiveConversation(activeConversationId);
+    (async () => {
+      loadSupportedModels();
+      await ensureSupportedModels();
+      loadState();
+      ensureDefaultConversation();
+      history = (conversations.find(c => c.id === activeConversationId) || conversations[0]).history;
+      activeConversationId = (conversations.find(c => c.id === activeConversationId) || conversations[0]).id;
+      renderConversationList();
+      renderModelList();
+      setActiveConversation(activeConversationId);
+    })();
   </script>
 </body>
 </html>
