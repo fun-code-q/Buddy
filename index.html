@@ -300,6 +300,17 @@
     .build-log { border: 1px dashed var(--border); border-radius: 8px; padding: 8px; max-height: 160px; overflow: auto; font-size: 13px; }
     .log-item { margin: 4px 0; color: var(--muted); }
     .log-item strong { color: var(--text); }
+    /* Polish */
+    .btn:hover, .btn-icon:hover, .send:hover, .icon:hover, .burger:hover { filter: brightness(1.06); }
+    .tab:hover, .tree-item:hover { filter: brightness(1.08); }
+    .builder { box-shadow: 0 6px 28px rgba(0,0,0,0.25); }
+    .bubble { box-shadow: 0 4px 18px rgba(0,0,0,0.18); }
+    /* Toasts */
+    #toastContainer { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 10px; z-index: 2000; }
+    .toast { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: grid; grid-auto-flow: column; align-items: center; gap: 10px; transition: opacity .25s ease, transform .25s ease; }
+    .toast.ok { border-left: 3px solid var(--ok); }
+    .toast.warn { border-left: 3px solid var(--warn); }
+    .toast.err { border-left: 3px solid var(--err); }
   </style>
 </head>
 <body>
@@ -315,6 +326,7 @@
       
     </div>
   </div>
+  <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
   <div id="thinkingPanel" class="dropdown hidden">
     <div class="sb-title" style="margin-bottom:6px">Thinking</div>
     <div id="thinkingList"></div>
@@ -464,6 +476,16 @@
     let selectedPath = null; // current file or folder path
     let isBuilding = false;
     let buildAbort = { aborted: false };
+
+    // ------- Toasts -------
+    function showToast(type, message) {
+      const wrap = document.createElement('div');
+      wrap.className = `toast ${type}`;
+      wrap.innerHTML = `${type==='err'?'❌':type==='warn'?'⚠️':'✅'} <div>${escapeHtml(String(message))}</div>`;
+      document.getElementById('toastContainer').appendChild(wrap);
+      setTimeout(() => { wrap.style.opacity = '0'; wrap.style.transform='translateY(6px)'; }, 3500);
+      setTimeout(() => wrap.remove(), 4200);
+    }
 
     function persistProject() {
       try { localStorage.setItem('buddy_project_files', JSON.stringify(projectFiles)); } catch {}
@@ -628,7 +650,7 @@
       tabPreviewEl.click();
     }
     async function downloadZip() {
-      if (!window.JSZip) { alert('Zip library not loaded.'); return; }
+      if (!window.JSZip) { showToast('err','Zip library not loaded.'); return; }
       const zip = new JSZip();
       for (const [p, content] of Object.entries(projectFiles)) {
         if (content === null) continue; // folder
@@ -670,7 +692,7 @@
         { role: 'system', content: 'You are the Orchestrator for a multi-agent coding system (like v0.dev/bolt/lovable) focused ONLY on software development. Output a tight JSON: { goals: string[], tasks: string[], requiresSearch: boolean, techStack: string[], notes?: string }' },
         ...buildMessages(history, userPrompt)
       ];
-      const planText = await askModel(planMsgs, null);
+      const planText = await askModelWithRetry(planMsgs, null);
       const plan = extractJson(planText) || { goals: [], tasks: [], requiresSearch: false, techStack: [], notes: '' };
       addLog(`<strong>Plan:</strong> ${escapeHtml(JSON.stringify(plan))}`);
       if (buildAbort.aborted) return;
@@ -683,7 +705,7 @@
           { role: 'system', content: 'You are a Web Researcher. Without fabricating, compile a concise brief with references (titles and URLs) that will help implement the requested app. If unsure, state assumptions.' },
           { role: 'user', content: `Context to research: ${userPrompt}\n\nTasks: ${plan.tasks?.join('\n')}` }
         ];
-        researchNotes = extractText(await askModel(researchMsgs, null));
+        researchNotes = extractText(await askModelWithRetry(researchMsgs, null));
         addLog(`<strong>Research brief:</strong> ${escapeHtml(researchNotes.slice(0, 1200))}`);
       }
       if (buildAbort.aborted) return;
@@ -694,7 +716,7 @@
         { role: 'system', content: 'You are a Software Architect. Output ONLY JSON describing the project structure. Schema: { files: Array<{ path: string, description?: string }>, entry?: string, notes?: string }. Prefer web projects with index.html and a src folder. No code content now.' },
         { role: 'user', content: `Prompt: ${userPrompt}\n\nGoals: ${JSON.stringify(plan.goals)}\nTech stack: ${JSON.stringify(plan.techStack)}\nResearch: ${researchNotes || 'N/A'}` }
       ];
-      const archText = await askModel(archMsgs, null);
+      const archText = await askModelWithRetry(archMsgs, null);
       const arch = extractJson(archText) || { files: [{ path: 'index.html' }], entry: 'index.html' };
       const files = Array.isArray(arch.files) ? arch.files.map(f=>f.path) : ['index.html'];
       // create folders and empty files
@@ -714,7 +736,7 @@
           { role: 'system', content: 'You are a Senior Software Engineer. Generate COMPLETE code for the requested file only. Return ONLY one fenced code block with correct language. No explanations.' },
           { role: 'user', content: `Build an app as described: ${userPrompt}\nGoals: ${JSON.stringify(plan.goals)}\nTech: ${JSON.stringify(plan.techStack)}\nFile to implement: ${p}${arch.notes ? `\nArchitecture notes: ${arch.notes}` : ''}${researchNotes ? `\nRelevant research: ${researchNotes}` : ''}` }
         ];
-        const codeResp = await askModel(coderMsgs, null);
+        const codeResp = await askModelWithRetry(coderMsgs, null);
         const block = firstCodeFrom(codeResp);
         const content = block ? block.code : String(codeResp || '');
         // Progressive write for live feeling
@@ -728,16 +750,16 @@
         { role: 'system', content: 'You are the Build Guide. Summarize what was created and how to run it locally in 5-7 bullets.' },
         { role: 'user', content: `Files: ${Object.keys(projectFiles).filter(p=>projectFiles[p]!==null).join(', ')}` }
       ];
-      const guideText = await askModel(guideMsgs, null);
+      const guideText = await askModelWithRetry(guideMsgs, null);
       const aiIndex = history.length;
       history.push({ role: 'assistant', content: guideText, meta: { label: 'Guide' } });
       renderMessage('assistant', guideText, aiIndex);
       previewProject();
       setBuilderBusy(false);
     }
-    btnStartBuild.onclick = () => { const q = queryEl.value.trim(); if (!q) { alert('Enter a prompt first'); return; } orchestrateBuild(q); };
-    buildBtn.onclick = () => { const q = queryEl.value.trim(); if (!q) { alert('Enter a prompt first'); return; } orchestrateBuild(q); };
-    btnStopBuild.onclick = () => { buildAbort.aborted = true; setBuilderBusy(false); addLog('<strong>Build aborted.</strong>'); };
+    btnStartBuild.onclick = () => { const q = queryEl.value.trim(); if (!q) { showToast('warn','Enter a prompt first.'); return; } orchestrateBuild(q); };
+    buildBtn.onclick = () => { const q = queryEl.value.trim(); if (!q) { showToast('warn','Enter a prompt first.'); return; } orchestrateBuild(q); };
+    btnStopBuild.onclick = () => { buildAbort.aborted = true; setBuilderBusy(false); addLog('<strong>Build aborted.</strong>'); showToast('warn','Build aborted.'); };
 
     // Load project on boot
     loadProject();
@@ -828,6 +850,27 @@
       }
     }
 
+    async function askModelWithRetry(messages, modelId, maxTries = 3) {
+      const tryModels = [];
+      if (modelId) tryModels.push(modelId);
+      tryModels.push(null); // default
+      if (supportedModels && supportedModels.size) {
+        if (supportedModels.has('gpt-4o')) tryModels.push('gpt-4o');
+        tryModels.push(...Array.from(supportedModels).slice(0, 2));
+      }
+      let lastErr = 'Failed to get response';
+      for (let t = 0; t < maxTries; t++) {
+        for (const mid of tryModels) {
+          const text = await askModel(messages, mid);
+          if (text && !/^Error:/i.test(String(text))) return text;
+          lastErr = typeof text === 'string' ? text.replace(/^Error:\s*/i,'') : 'Failed to get response';
+        }
+        await new Promise(r => setTimeout(r, 400 * (t + 1)));
+      }
+      showToast('err', `Model request failed: ${lastErr}`);
+      return `Error: ${lastErr}`;
+    }
+
     async function summarizeCombined(historyArr, query, answersByProvider, summarizer) {
       try {
         const ordered = Object.keys(answersByProvider);
@@ -838,7 +881,7 @@
           ...historyArr.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6),
           { role: 'user', content: prompt },
         ];
-        const response = await askModel(msgs, summarizer);
+        const response = await askModelWithRetry(msgs, summarizer);
         const respText = typeof response === 'string' ? response : extractText(response);
         if (respText && !/^Error:/i.test(respText.trim())) return respText;
         const fallbacks = Object.values(answersByProvider)
@@ -882,7 +925,7 @@
     async function probeModel(modelId) {
       try {
         const msgs = [ { role: 'user', content: 'ok?' } ];
-        const text = await askModel(msgs, modelId);
+        const text = await askModelWithRetry(msgs, modelId);
         return Boolean(text && !/^Error:/i.test(String(text)));
       } catch {
         return false;
@@ -932,7 +975,7 @@
       const ids = (modelIds && modelIds.length) ? modelIds : [];
       for (const model of ids) {
         tasks.push(
-          askModel(messages, model)
+          askModelWithRetry(messages, model)
             .then((c) => {
               results[model] = c;
               const t = thinkItems[model];
@@ -1248,7 +1291,7 @@
           console.error("Error reading text file:", e);
         }
       } else {
-        alert('Only images or text/md/json files supported');
+        showToast('warn','Only images or text/md/json files are supported.');
       }
       e.target.value = '';
     });
@@ -1363,7 +1406,7 @@
             assistantContent = nonErrorProvider;
           } else {
             const fallbackMessages = buildMessages(history, '');
-            const fallback = await askModel(fallbackMessages, null);
+            const fallback = await askModelWithRetry(fallbackMessages, null);
             const fallbackText = extractText(fallback);
             assistantContent = isBlank(fallbackText) || isErrorText(fallbackText) ? '[No combined answer could be generated]' : fallbackText;
           }
@@ -1383,6 +1426,7 @@
         const aiIndex = history.length;
         history.push({ role: 'assistant', content: errorMsg });
         renderMessage('assistant', errorMsg, aiIndex);
+        try { showToast('err','Failed to get response. Please try again.'); } catch {}
       } finally {
         inFlightAbort = null;
         setComposeBusy(false);
@@ -1475,7 +1519,7 @@
               assistantContent = nonErrorProvider;
             } else {
               const fallbackMessages = buildMessages(history, '');
-              const fallback = await askModel(fallbackMessages, null);
+              const fallback = await askModelWithRetry(fallbackMessages, null);
               const fallbackText = extractText(fallback);
               assistantContent = isBlank(fallbackText) || isErrorText(fallbackText) ? '[No combined answer could be generated]' : fallbackText;
             }
