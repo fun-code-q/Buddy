@@ -181,8 +181,9 @@
       .icon-btn input[type=file] { display: none; }
       .chips { max-width: 1100px; margin: 6px auto 0; display: flex; gap: 8px; flex-wrap: wrap; }
       .chip { border: 1px dashed var(--border); border-radius: 8px; padding: 6px 8px; }
-      .toolbar { display: flex; gap: 8px; margin-top: 8px; }
+      .toolbar { display: flex; gap: 6px; margin-top: 8px; }
       .btn { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+      .btn-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
       .send { display: inline-flex; align-items: center; justify-content: center; width: var(--control-h); height: var(--control-h); background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; }
       .send:disabled { opacity: .6; cursor: not-allowed; }
       .preview-frame { width: 100%; height: 420px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
@@ -198,6 +199,15 @@
         padding: 10px 12px;
         overflow-y: hidden;
       }
+      /* Thinking dropdown */
+      .topbar-right { justify-self: end; }
+      .dropdown { position: fixed; top: 56px; right: 12px; width: 320px; max-height: 50vh; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; z-index: 12; }
+      .thinking-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 0; }
+      .dot { width: 10px; height: 10px; border-radius: 50%; }
+      .dot.pending { background: #caa85a; }
+      .dot.done { background: #3ad29f; }
+      .dot.error { background: #ff6b6b; }
+      .hidden { display: none; }
     </style>
   </head>
   <body>
@@ -209,7 +219,13 @@
       <div class="topbar-center">
         <div class="topbar-note small muted">No login. No limits. Refresh clears the conversation.</div>
       </div>
-      <div></div>
+      <div class="topbar-right">
+        <button id="btnThinking" class="icon hidden" title="Show thinking">💭</button>
+      </div>
+    </div>
+    <div id="thinkingPanel" class="dropdown hidden">
+      <div class="sb-title" style="margin-bottom:6px">Thinking</div>
+      <div id="thinkingList"></div>
     </div>
     <div id="backdrop" class="backdrop"></div>
     <aside id="sidebar" class="sidebar">
@@ -277,6 +293,10 @@
       const attachInput = document.getElementById('attachInput');
       const attachmentsEl = document.getElementById('attachments');
       let pendingImage = null; let pendingTextFile = null;
+      // Thinking UI
+      const btnThinking = document.getElementById('btnThinking');
+      const thinkingPanel = document.getElementById('thinkingPanel');
+      const thinkingList = document.getElementById('thinkingList');
 
       // Sidebar elements
       const sidebar = document.getElementById('sidebar');
@@ -357,15 +377,30 @@
         const messages = buildMessages(historyArr, query);
         const results = {};
         const tasks = [];
+        // Show thinking UI
+        thinkingList.innerHTML = '';
+        const thinkItems = {};
+        for (const model of modelIds) {
+          const row = document.createElement('div'); row.className='thinking-row';
+          const dot = document.createElement('div'); dot.className='dot pending';
+          const name = document.createElement('div'); name.textContent = model;
+          const status = document.createElement('div'); status.className='small muted'; status.textContent = 'pending';
+          row.appendChild(dot); row.appendChild(name); row.appendChild(status);
+          thinkingList.appendChild(row);
+          thinkItems[model] = { dot, status };
+        }
+        btnThinking.classList.remove('hidden');
         for (const model of modelIds) {
           tasks.push(
             askModel(messages, model)
-              .then((c) => { results[model] = c; })
-              .catch((e) => { results[model] = `Error: ${e.message}`; })
+              .then((c) => { results[model] = c; const t=thinkItems[model]; if (t) { t.dot.className='dot done'; t.status.textContent='done'; } })
+              .catch((e) => { results[model] = `Error: ${e.message}`; const t=thinkItems[model]; if (t) { t.dot.className='dot error'; t.status.textContent='error'; } })
           );
         }
         await Promise.all(tasks);
         const combined = await summarizeCombined(historyArr, query, results, summarizer).catch(e => `Combined error: ${e.message}`);
+        // Hide thinking UI if everything done and panel not pinned
+        setTimeout(() => { if (thinkingPanel.classList.contains('hidden')) btnThinking.classList.add('hidden'); }, 600);
         return { ...results, combined };
       }
 
@@ -385,10 +420,11 @@
       function createToolbar(buttons) {
         const bar = document.createElement('div');
         bar.className = 'toolbar';
-        for (const { label, onClick } of buttons) {
+        for (const { title, icon, onClick } of buttons) {
           const b = document.createElement('button');
-          b.className = 'btn';
-          b.textContent = label;
+          b.className = 'btn btn-icon';
+          b.title = title;
+          b.innerHTML = icon;
           b.onclick = onClick;
           bar.appendChild(b);
         }
@@ -422,13 +458,13 @@
         div.innerHTML = `<div class="small muted">${label}</div><div class="body">${safe}</div>`;
         const buttons = [];
         if (role === 'user') {
-          buttons.push({ label: 'Copy', onClick: () => navigator.clipboard.writeText(content) });
-          buttons.push({ label: 'Edit', onClick: () => editPrompt(index) });
-          buttons.push({ label: 'Delete', onClick: () => deletePrompt(index) });
+          buttons.push({ title: 'Copy', icon: '📋', onClick: () => navigator.clipboard.writeText(content) });
+          buttons.push({ title: 'Edit', icon: '✏️', onClick: () => editPrompt(index) });
+          buttons.push({ title: 'Delete', icon: '🗑️', onClick: () => deletePrompt(index) });
         } else {
-          buttons.push({ label: 'Copy Answer', onClick: () => navigator.clipboard.writeText(content) });
+          buttons.push({ title: 'Copy Answer', icon: '📋', onClick: () => navigator.clipboard.writeText(content) });
           const code = extractFirstCodeBlock(content);
-          if (code) buttons.push({ label: 'Preview', onClick: () => previewCode(code.code, code.lang) });
+          if (code) buttons.push({ title: 'Preview', icon: '👁️', onClick: () => previewCode(code.code, code.lang) });
         }
         div.appendChild(createToolbar(buttons));
         chatEl.appendChild(div);
@@ -705,6 +741,11 @@
         }
       }
       btnNewChat.addEventListener('click', newChat);
+      btnThinking.addEventListener('click', () => {
+        const open = thinkingPanel.classList.contains('hidden');
+        if (open) { thinkingPanel.classList.remove('hidden'); }
+        else { thinkingPanel.classList.add('hidden'); if (thinkingList.querySelector('.dot.pending')) { /* keep button */ } else { btnThinking.classList.add('hidden'); } }
+      });
       modelsToggle.addEventListener('click', () => {
         const closed = modelList.classList.contains('hidden');
         if (closed) { modelList.classList.remove('hidden'); modelsToggle.textContent = '▼'; }
