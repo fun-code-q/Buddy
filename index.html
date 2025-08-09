@@ -1,414 +1,403 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Buddy AI</title>
-    <script src="https://js.puter.com/v2/"></script>
-    <!-- Add Fira Code font for better code display -->
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        --bg: #0b0d10;
-        --panel: #12151a;
-        --user-bubble: #111824;
-        --buddy-bubble: #0f1a13;
-        --muted: #9aa4b2;
-        --text: #e8eef5;
-        --accent: #6aa6ff;
-        --accent-2: #9b6bff;
-        --border: #1f2430;
-        --ok: #3ad29f;
-        --warn: #ffcc66;
-        --err: #ff6b6b;
-        --control-h: 44px;
-      }
-      * { box-sizing: border-box; }
-      html, body { height: 100%; }
-      body {
-        margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-        background: radial-gradient(1200px 800px at 10% -10%, rgba(106,166,255,0.15), transparent 50%),
-                    radial-gradient(1000px 600px at 110% -20%, rgba(155,107,255,0.12), transparent 50%),
-                    var(--bg);
-        color: var(--text);
-      }
-      .container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-      .header { display: none; }
-      .title {
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.2px;
-      }
-      .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px 16px;
-        align-items: center;
-      }
-      .toggle-group, .mode-group {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
-        display: flex;
-        gap: 14px;
-        align-items: center;
-      }
-      .toggle {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        color: var(--muted);
-        font-size: 14px;
-      }
-      .mode-extra {
-        display: none;
-        gap: 8px;
-        align-items: center;
-      }
-      .input-bar {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 12px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-      textarea {
-        width: 100%;
-        min-height: 60px;
-        max-height: 200px;
-        resize: vertical;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: transparent;
-        color: var(--text);
-        outline: none;
-        font-size: 15px;
-      }
-      button#sendBtn {
-        background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        color: white;
-        border: none;
-        padding: 12px 16px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: 600;
-      }
-      button#sendBtn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      .chat {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-      .bubble {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 14px;
-        line-height: 1.5;
-      }
-      .bubble.user { border-left: 3px solid var(--accent); background: var(--user-bubble); }
-      .bubble.assistant { border-left: 3px solid var(--ok); background: var(--buddy-bubble); }
-      .providers {
-        display: grid;
-        gap: 10px;
-      }
-      .provider-card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px;
-      }
-      .provider-title {
-        font-weight: 700;
-        margin-bottom: 6px;
-      }
-      .muted { color: var(--muted); }
-      .small { font-size: 12px; }
-      .combined {
-        border-left: 3px solid var(--ok);
-      }
-      code, pre { 
-        white-space: pre-wrap;
-        font-family: 'Fira Code', 'Consolas', monospace;
-      }
-      
-      /* Improved code block styling */
-      .bubble .body pre {
-        background: var(--user-bubble);
-        border-radius: 8px;
-        padding: 12px;
-        overflow-x: auto;
-        border: 1px solid var(--border);
-        font-family: 'Fira Code', 'Consolas', monospace;
-        font-size: 14px;
-        line-height: 1.4;
-        margin: 8px 0;
-        tab-size: 4;
-      }
-      
-      .bubble .body code {
-        font-family: inherit;
-        color: var(--accent);
-        background: rgba(106, 166, 255, 0.1);
-        padding: 2px 4px;
-        border-radius: 4px;
-      }
-      
-      /* Syntax highlighting colors */
-      .token.keyword { color: var(--accent-2); }
-      .token.comment { color: var(--muted); }
-      .token.string { color: var(--ok); }
-      .token.function { color: var(--accent); }
-      .token.tag { color: var(--err); }
-      
-      a { color: var(--accent); }
-    </style>
-    <style>
-      /* Bottom composer and action UI */
-      .topbar { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; background: rgba(18,21,26,0.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 10px 12px; }
-      .burger { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-      .brand { font-weight: 700; letter-spacing: 0.3px; }
-      .topbar-left { display: inline-flex; align-items: center; gap: 10px; }
-      .topbar-center { justify-self: center; text-align: center; }
-      .topbar-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 280px; background: var(--panel); border-right: 1px solid var(--border); transform: translateX(-100%); transition: transform .2s ease; z-index: 10; padding: 12px; overflow: auto; display: flex; flex-direction: column; }
-      .sidebar.open { transform: translateX(0); }
-      .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 9; }
-      .backdrop.show { opacity: 1; pointer-events: auto; }
-      .sb-section { margin-bottom: 16px; }
-      .sb-title { font-weight: 700; margin-bottom: 8px; }
-      .sb-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-      .conv-item { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
-      .conv-name { background: transparent; color: var(--text); border: none; outline: none; width: 100%; }
-      .icon { background: var(--panel); border: 1px solid var(--border); color: var(--text); width: 28px; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-      .model-list { display: grid; gap: 6px; max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
-      .model-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-      .hidden { display: none; }
-      .sb-models { position: sticky; bottom: 0; background: var(--panel); padding-top: 8px; border-top: 1px solid var(--border); }
-      .composer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        border-top: 1px solid var(--border);
-        background: rgba(18,21,26,0.9);
-        backdrop-filter: blur(8px);
-        padding: 10px 12px;
-      }
-      .composer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
-      .attach { display: flex; gap: 6px; align-items: center; }
-      .icon-btn { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: var(--control-h); height: var(--control-h); padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-      .icon-btn input[type=file] { display: none; }
-      .chips { max-width: 1100px; margin: 6px auto 0; display: flex; gap: 8px; flex-wrap: wrap; }
-      .chip { border: 1px dashed var(--border); border-radius: 8px; padding: 6px 8px; }
-      .toolbar { display: flex; gap: 6px; margin-top: 8px; }
-      .btn { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
-      .btn-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
-      .send { display: inline-flex; align-items: center; justify-content: center; width: var(--control-h); height: var(--control-h); background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; }
-      .send:disabled { opacity: .6; cursor: not-allowed; }
-      .preview-frame { width: 100%; height: 420px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
-      .spacer { height: 120px; }
-      @media (max-width: 640px) { .composer-inner { grid-template-columns: 1fr auto; } .attach { grid-column: 1/-1; } }
-    </style>
-    <style>
-      /* Ensure composer textarea aligns exactly with controls */
-      .composer textarea {
-        min-height: var(--control-h);
-        height: auto;
-        max-height: none;
-        padding: 10px 12px;
-        overflow-y: hidden;
-      }
-      /* Thinking dropdown */
-      .topbar-right { justify-self: end; }
-      .dropdown { position: fixed; top: 56px; right: 12px; width: 320px; max-height: 50vh; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; z-index: 12; }
-      .thinking-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 0; }
-      .dot { width: 10px; height: 10px; border-radius: 50%; }
-      .dot.pending { background: #caa85a; }
-      .dot.done { background: #3ad29f; }
-      .dot.error { background: #ff6b6b; }
-      .hidden { display: none; }
-      
-      /* Preview close button */
-      .preview-container {
-        position: relative;
-      }
-      
-      .close-preview {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: var(--panel);
-        border: 1px solid var(--border);
-        color: var(--text);
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 100;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="topbar">
-      <div class="topbar-left">
-        <button id="toggleSidebar" class="burger" aria-label="Menu">☰</button>
-        <div class="brand">Buddy AI</div>
-      </div>
-      <div class="topbar-center">
-        <div class="topbar-note small muted">No login. No limits. Refresh clears the conversation.</div>
-      </div>
-      <div class="topbar-right">
-        <button id="btnThinking" class="icon hidden" title="Show thinking">💭</button>
-      </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buddy AI</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #12151a;
+      --user-bubble: #111824;
+      --buddy-bubble: #0f1a13;
+      --muted: #9aa4b2;
+      --text: #e8eef5;
+      --accent: #6aa6ff;
+      --accent-2: #9b6bff;
+      --border: #1f2430;
+      --ok: #3ad29f;
+      --warn: #ffcc66;
+      --err: #ff6b6b;
+      --control-h: 44px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% -10%, rgba(106,166,255,0.15), transparent 50%),
+                  radial-gradient(1000px 600px at 110% -20%, rgba(155,107,255,0.12), transparent 50%),
+                  var(--bg);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .header { display: none; }
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+    }
+    .toggle-group, .mode-group {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .toggle {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .mode-extra {
+      display: none;
+      gap: 8px;
+      align-items: center;
+    }
+    .input-bar {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    textarea {
+      width: 100%;
+      min-height: 60px;
+      max-height: 200px;
+      resize: vertical;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      outline: none;
+      font-size: 15px;
+    }
+    button#sendBtn {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button#sendBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .chat {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .bubble {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      line-height: 1.5;
+    }
+    .bubble.user { border-left: 3px solid var(--accent); background: var(--user-bubble); }
+    .bubble.assistant { border-left: 3px solid var(--ok); background: var(--buddy-bubble); }
+    .providers {
+      display: grid;
+      gap: 10px;
+    }
+    .provider-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .provider-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .combined {
+      border-left: 3px solid var(--ok);
+    }
+    code, pre { 
+      white-space: pre-wrap;
+      font-family: 'Fira Code', 'Consolas', monospace;
+    }
+    .bubble .body pre {
+      background: var(--user-bubble);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.4;
+      margin: 8px 0;
+      tab-size: 4;
+    }
+    .bubble .body code {
+      font-family: inherit;
+      color: var(--accent);
+      background: rgba(106, 166, 255, 0.1);
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .token.keyword { color: var(--accent-2); }
+    .token.comment { color: var(--muted); }
+    .token.string { color: var(--ok); }
+    .token.function { color: var(--accent); }
+    .token.tag { color: var(--err); }
+    a { color: var(--accent); }
+  </style>
+  <style>
+    .topbar { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; background: rgba(18,21,26,0.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 10px 12px; }
+    .burger { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+    .brand { font-weight: 700; letter-spacing: 0.3px; }
+    .topbar-left { display: inline-flex; align-items: center; gap: 10px; }
+    .topbar-center { justify-self: center; text-align: center; }
+    .topbar-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 280px; background: var(--panel); border-right: 1px solid var(--border); transform: translateX(-100%); transition: transform .2s ease; z-index: 10; padding: 12px; overflow: auto; display: flex; flex-direction: column; }
+    .sidebar.open { transform: translateX(0); }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 9; }
+    .backdrop.show { opacity: 1; pointer-events: auto; }
+    .sb-section { margin-bottom: 16px; }
+    .sb-title { font-weight: 700; margin-bottom: 8px; }
+    .sb-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .conv-item { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+    .conv-name { background: transparent; color: var(--text); border: none; outline: none; width: 100%; }
+    .icon { background: var(--panel); border: 1px solid var(--border); color: var(--text); width: 28px; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+    .model-list { display: grid; gap: 6px; max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+    .model-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .hidden { display: none; }
+    .sb-models { position: sticky; bottom: 0; background: var(--panel); padding-top: 8px; border-top: 1px solid var(--border); }
+    .composer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-top: 1px solid var(--border);
+      background: rgba(18,21,26,0.9);
+      backdrop-filter: blur(8px);
+      padding: 10px 12px;
+    }
+    .composer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+    .attach { display: flex; gap: 6px; align-items: center; }
+    .icon-btn { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: var(--control-h); height: var(--control-h); padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .icon-btn input[type=file] { display: none; }
+    .chips { max-width: 1100px; margin: 6px auto 0; display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { border: 1px dashed var(--border); border-radius: 8px; padding: 6px 8px; }
+    .toolbar { display: flex; gap: 6px; margin-top: 8px; }
+    .btn { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+    .btn-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    .send { display: inline-flex; align-items: center; justify-content: center; width: var(--control-h); height: var(--control-h); background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; }
+    .send:disabled { opacity: .6; cursor: not-allowed; }
+    .preview-frame { width: 100%; height: 420px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+    .spacer { height: 120px; }
+    @media (max-width: 640px) { .composer-inner { grid-template-columns: 1fr auto; } .attach { grid-column: 1/-1; } }
+  </style>
+  <style>
+    .composer textarea {
+      min-height: var(--control-h);
+      height: auto;
+      max-height: none;
+      padding: 10px 12px;
+      overflow-y: hidden;
+    }
+    .topbar-right { justify-self: end; }
+    .dropdown { position: fixed; top: 56px; right: 12px; width: 320px; max-height: 50vh; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; z-index: 12; }
+    .thinking-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 0; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.pending { background: #caa85a; }
+    .dot.done { background: #3ad29f; }
+    .dot.error { background: #ff6b6b; }
+    .hidden { display: none; }
+    .preview-container {
+      position: relative;
+    }
+    .close-preview {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-left">
+      <button id="toggleSidebar" class="burger" aria-label="Menu">☰</button>
+      <div class="brand">Buddy AI</div>
     </div>
-    <div id="thinkingPanel" class="dropdown hidden">
-      <div class="sb-title" style="margin-bottom:6px">Thinking</div>
-      <div id="thinkingList"></div>
+    <div class="topbar-center">
+      <div class="topbar-note small muted">No login. No limits. Refresh clears the conversation.</div>
     </div>
-    <div id="backdrop" class="backdrop"></div>
-    <aside id="sidebar" class="sidebar">
-      <div class="sb-section" style="display:flex; justify-content: space-between; align-items:center;">
-        <div class="sb-title" style="margin:0">Buddy AI</div>
-        <button id="closeSidebar" class="icon" aria-label="Close">✕</button>
+    <div class="topbar-right">
+      <button id="btnThinking" class="icon hidden" title="Show thinking">💭</button>
+    </div>
+  </div>
+  <div id="thinkingPanel" class="dropdown hidden">
+    <div class="sb-title" style="margin-bottom:6px">Thinking</div>
+    <div id="thinkingList"></div>
+  </div>
+  <div id="backdrop" class="backdrop"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="sb-section" style="display:flex; justify-content: space-between; align-items:center;">
+      <div class="sb-title" style="margin:0">Buddy AI</div>
+      <button id="closeSidebar" class="icon" aria-label="Close">✕</button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-title">Conversations</div>
+      <button id="btnNewChat" class="btn" style="width:100%">+ New Chat</button>
+      <div id="convList" style="margin-top:8px"></div>
+    </div>
+    <div class="sb-section sb-models" style="margin-top:auto;">
+      <div class="sb-title-row">
+        <div class="sb-title" style="margin:0">Models</div>
+        <button id="modelsToggle" class="icon" aria-label="Toggle models">▶</button>
       </div>
-      <div class="sb-section">
-        <div class="sb-title">Conversations</div>
-        <button id="btnNewChat" class="btn" style="width:100%">+ New Chat</button>
-        <div id="convList" style="margin-top:8px"></div>
-      </div>
-      <div class="sb-section sb-models" style="margin-top:auto;">
-        <div class="sb-title-row">
-          <div class="sb-title" style="margin:0">Models</div>
-          <button id="modelsToggle" class="icon" aria-label="Toggle models">▶</button>
-        </div>
-        <div id="modelList" class="model-list hidden"></div>
-      </div>
-    </aside>
-    <div class="container">
-      <div class="header"></div>
+      <div id="modelList" class="model-list hidden"></div>
+    </div>
+  </aside>
+  <div class="container">
+    <div class="header"></div>
 
-      <div class="input-bar" style="display:none">
-        <textarea id="query_top" placeholder="Ask anything..."></textarea>
-        <button id="sendBtnTop">Send</button>
-      </div>
-
-      <div class="chat" id="chat"></div>
-
-      <div class="providers" id="providers" style="display:none"></div>
-
-      <div class="bubble combined" id="combined" style="display:none"></div>
+    <div class="input-bar" style="display:none">
+      <textarea id="query_top" placeholder="Ask anything..."></textarea>
+      <button id="sendBtnTop">Send</button>
     </div>
 
-    <div class="spacer"></div>
-    <div class="composer">
-      <div class="composer-inner">
-        <div class="attach">
-          <label class="icon-btn" title="Attach (image or text)"><input id="attachInput" type="file" accept="image/*,.txt,.md,.json,application/json,text/plain"><span>📎</span></label>
-        </div>
-        <textarea id="query" placeholder="Ask anything..."></textarea>
-        <button class="send" id="sendBtn" aria-label="Send">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 11L21 3L13 21L11 13L3 11Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
+    <div class="chat" id="chat"></div>
+
+    <div class="providers" id="providers" style="display:none"></div>
+
+    <div class="bubble combined" id="combined" style="display:none"></div>
+  </div>
+
+  <div class="spacer"></div>
+  <div class="composer">
+    <div class="composer-inner">
+      <div class="attach">
+        <label class="icon-btn" title="Attach (image or text)"><input id="attachInput" type="file" accept="image/*,.txt,.md,.json,application/json,text/plain"><span>📎</span></label>
       </div>
-      <div id="attachments" class="chips"></div>
+      <textarea id="query" placeholder="Ask anything..."></textarea>
+      <button class="send" id="sendBtn" aria-label="Send">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 11L21 3L13 21L11 13L3 11Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
+    <div id="attachments" class="chips"></div>
+  </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script>
-      const PROVIDER_MODELS = {
-        chatgpt: 'gpt-4o',
-        deepseek: 'deepseek-chat',
-        grok: 'x-ai/grok-4',
-      };
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const PROVIDER_MODELS = {
+      chatgpt: 'gpt-4o',
+      deepseek: 'deepseek-chat',
+      grok: 'x-ai/grok-4',
+    };
 
-      const chatEl = document.getElementById('chat');
-      const providersEl = document.getElementById('providers');
-      const combinedEl = document.getElementById('combined');
-      const queryEl = document.getElementById('query');
-      const sendBtn = document.getElementById('sendBtn');
-      const attachInput = document.getElementById('attachInput');
-      const attachmentsEl = document.getElementById('attachments');
-      let pendingImage = null; let pendingTextFile = null;
-      // Thinking UI
-      const btnThinking = document.getElementById('btnThinking');
-      const thinkingPanel = document.getElementById('thinkingPanel');
-      const thinkingList = document.getElementById('thinkingList');
+    const chatEl = document.getElementById('chat');
+    const providersEl = document.getElementById('providers');
+    const combinedEl = document.getElementById('combined');
+    const queryEl = document.getElementById('query');
+    const sendBtn = document.getElementById('sendBtn');
+    const attachInput = document.getElementById('attachInput');
+    const attachmentsEl = document.getElementById('attachments');
+    let pendingImage = null; let pendingTextFile = null;
+    const btnThinking = document.getElementById('btnThinking');
+    const thinkingPanel = document.getElementById('thinkingPanel');
+    const thinkingList = document.getElementById('thinkingList');
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebarBtn = document.getElementById('toggleSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebar');
+    const backdrop = document.getElementById('backdrop');
+    const btnNewChat = document.getElementById('btnNewChat');
+    const convList = document.getElementById('convList');
+    const modelList = document.getElementById('modelList');
+    const modelsToggle = document.getElementById('modelsToggle');
 
-      // Sidebar elements
-      const sidebar = document.getElementById('sidebar');
-      const toggleSidebarBtn = document.getElementById('toggleSidebar');
-      const closeSidebarBtn = document.getElementById('closeSidebar');
-      const backdrop = document.getElementById('backdrop');
-      const btnNewChat = document.getElementById('btnNewChat');
-      const convList = document.getElementById('convList');
-      const modelList = document.getElementById('modelList');
-      const modelsToggle = document.getElementById('modelsToggle');
+    let conversations = [];
+    let activeConversationId = null;
+    let history = [];
+    let selectedModels = null;
 
-      // Conversations state
-      let conversations = [];
-      let activeConversationId = null;
-      let history = []; // alias to active conversation history
-      let selectedModels = null; // Set of model ids
+    function escapeHtml(str) {
+      return str
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
 
-      function escapeHtml(str) {
-        return str
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;');
-      }
-
-      function buildMessages(historyArr, userQuery) {
-        const msgs = [
-          { role: 'system', content: 'You are an expert assistant. Provide accurate, concise, well-structured answers. Do not truncate your output. Return complete results.' }
-        ];
-        if (Array.isArray(historyArr)) {
-          for (const m of historyArr) {
-            if (!m || !m.role || !m.content) continue;
-            if (m.role === 'user' || m.role === 'assistant' || m.role === 'system') {
-              msgs.push({ role: m.role, content: String(m.content) });
-            }
+    function buildMessages(historyArr, userQuery) {
+      const msgs = [
+        { role: 'system', content: 'You are an expert assistant. Provide accurate, concise, well-structured answers. Do not truncate your output. Return complete results.' }
+      ];
+      if (Array.isArray(historyArr)) {
+        for (const m of historyArr) {
+          if (!m || !m.role || !m.content) continue;
+          if (m.role === 'user' || m.role === 'assistant' || m.role === 'system') {
+            msgs.push({ role: m.role, content: String(m.content) });
           }
         }
-        if (userQuery && userQuery.trim()) {
-          msgs.push({ role: 'user', content: userQuery });
-        }
-        return msgs;
       }
-
-      function extractText(resp) {
-        if (typeof resp === 'string') return resp;
-        if (resp?.message?.content) return resp.message.content;
-        if (resp?.text) return resp.text;
-        try { return JSON.stringify(resp); } catch { return String(resp); }
+      if (userQuery && userQuery.trim()) {
+        msgs.push({ role: 'user', content: userQuery });
       }
+      return msgs;
+    }
 
-      async function askModel(messages, modelId) {
+    function extractText(resp) {
+      if (typeof resp === 'string') return resp;
+      if (resp?.message?.content) return resp.message.content;
+      if (resp?.text) return resp.text;
+      try { return JSON.stringify(resp); } catch { return String(resp); }
+    }
+
+    async function askModel(messages, modelId) {
+      try {
         const resp = await puter.ai.chat(messages, { model: modelId });
         return extractText(resp);
+      } catch (e) {
+        console.error(`Error with model ${modelId}:`, e);
+        return `Error: ${e.message || "Failed to get response"}`;
       }
+    }
 
-      async function summarizeCombined(historyArr, query, answersByProvider, summarizer) {
+    async function summarizeCombined(historyArr, query, answersByProvider, summarizer) {
+      try {
         const ordered = Object.keys(answersByProvider);
         const bullets = ordered.map(p => `- ${p}: ${(answersByProvider[p] || '').slice(0, 8000)}`).join('\n');
         const prompt = `You are an expert editor that merges multiple AI answers into one concise, accurate, and well-structured response.\n\nUser query:\n${query}\n\nModel answers:\n${bullets}`;
@@ -417,423 +406,453 @@
           ...historyArr.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6),
           { role: 'user', content: prompt },
         ];
-        return askModel(msgs, summarizer);
+        const response = await askModel(msgs, summarizer);
+        return response || "No combined answer could be generated";
+      } catch (e) {
+        console.error("Summarizer error:", e);
+        return `Combined error: ${e.message || "Unknown error occurred during summarization"}`;
       }
+    }
 
-      // Full model list based on Puter examples (use as ensemble)
-      const ALL_MODELS = [
-        'gpt-4.1', 'gpt-4o', 'gpt-4.1-nano', 'o3-mini', 'o1-mini',
-        'deepseek-chat', 'deepseek-reasoner',
-        'x-ai/grok-4',
-        'meta-llama/llama-4-maverick', 'meta-llama/llama-3.3-70b-instruct', 'meta-llama/llama-3.1-8b-instruct', 'meta-llama/llama-guard-3-8b',
-        'claude-3-5-sonnet'
-      ];
-      const SELECTED_MODELS = ALL_MODELS.slice(); // use all by default
+    const ALL_MODELS = [
+      'gpt-4.1', 'gpt-4o', 'gpt-4.1-nano', 'o3-mini', 'o1-mini',
+      'deepseek-chat', 'deepseek-reasoner',
+      'x-ai/grok-4',
+      'meta-llama/llama-4-maverick', 'meta-llama/llama-3.3-70b-instruct', 'meta-llama/llama-3.1-8b-instruct', 'meta-llama/llama-guard-3-8b',
+      'claude-3-5-sonnet'
+    ];
 
-      async function runParallel(modelIds, historyArr, query, summarizer) {
-        const messages = buildMessages(historyArr, query);
-        const results = {};
-        const tasks = [];
-        // Show thinking UI
-        thinkingList.innerHTML = '';
-        const thinkItems = {};
-        for (const model of modelIds) {
-          const row = document.createElement('div'); row.className='thinking-row';
-          const dot = document.createElement('div'); dot.className='dot pending';
-          const name = document.createElement('div'); name.textContent = model;
-          const status = document.createElement('div'); status.className='small muted'; status.textContent = 'pending';
-          row.appendChild(dot); row.appendChild(name); row.appendChild(status);
-          thinkingList.appendChild(row);
-          thinkItems[model] = { dot, status };
-        }
-        btnThinking.classList.remove('hidden');
-        for (const model of modelIds) {
-          tasks.push(
-            askModel(messages, model)
-              .then((c) => { results[model] = c; const t=thinkItems[model]; if (t) { t.dot.className='dot done'; t.status.textContent='done'; } })
-              .catch((e) => { results[model] = `Error: ${e.message}`; const t=thinkItems[model]; if (t) { t.dot.className='dot error'; t.status.textContent='error'; } })
-          );
-        }
-        await Promise.all(tasks);
-        const combined = await summarizeCombined(historyArr, query, results, summarizer).catch(e => `Combined error: ${e.message}`);
-        // Hide thinking UI if everything done and panel not pinned
-        setTimeout(() => { if (thinkingPanel.classList.contains('hidden')) btnThinking.classList.add('hidden'); }, 600);
-        return { ...results, combined };
+    async function runParallel(modelIds, historyArr, query, summarizer) {
+      const messages = buildMessages(historyArr, query);
+      const results = {};
+      const tasks = [];
+      
+      thinkingList.innerHTML = '';
+      const thinkItems = {};
+      
+      for (const model of modelIds) {
+        const row = document.createElement('div');
+        row.className = 'thinking-row';
+        const dot = document.createElement('div');
+        dot.className = 'dot pending';
+        const name = document.createElement('div');
+        name.textContent = model;
+        const status = document.createElement('div');
+        status.className = 'small muted';
+        status.textContent = 'pending';
+        row.appendChild(dot);
+        row.appendChild(name);
+        row.appendChild(status);
+        thinkingList.appendChild(row);
+        thinkItems[model] = { dot, status };
       }
-
-      async function runPipeline(retriever, summarizer, historyArr, query) {
-        const messages = buildMessages(historyArr, query);
-        let draft = '';
-        draft = await askModel(messages, retriever).catch(e => `Error: ${e.message}`);
-        const sumPrompt = `You are given a user query and a draft answer. Improve it into a final, accurate, concise answer.\n\nUser query:\n${query}\n\nDraft answer:\n${draft}`;
-        const sumMsgs = buildMessages(historyArr.filter(m => m.role !== 'system'), sumPrompt);
-        let combined = '';
-        combined = await askModel(sumMsgs, summarizer).catch(e => `Error: ${e.message}`);
-        const results = {};
-        results[retriever] = draft;
-        return { ...results, combined };
-      }
-
-      function createToolbar(buttons) {
-        const bar = document.createElement('div');
-        bar.className = 'toolbar';
-        for (const { title, icon, onClick } of buttons) {
-          const b = document.createElement('button');
-          b.className = 'btn btn-icon';
-          b.title = title;
-          b.innerHTML = icon;
-          b.onclick = onClick;
-          bar.appendChild(b);
-        }
-        return bar;
-      }
-
-      function extractFirstCodeBlock(text) {
-        const m = text.match(/```(\w+)?\n([\s\S]*?)```/);
-        if (!m) return null;
-        return { lang: (m[1]||'').toLowerCase(), code: m[2]||'' };
-      }
-
-      function previewCode(code, lang) {
-        const html = !lang || lang === 'html' ? code : `<!doctype html><html><head><style>body{margin:16px;}</style></head><body><pre>${escapeHtml(code)}</pre></body></html>`;
-        const wrap = document.createElement('div');
-        wrap.className = 'bubble assistant preview-container';
-        wrap.innerHTML = '<div class="small muted">Preview</div>';
-        
-        // Add close button
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'close-preview';
-        closeBtn.innerHTML = '✕';
-        closeBtn.onclick = () => wrap.remove();
-        wrap.appendChild(closeBtn);
-        
-        const iframe = document.createElement('iframe');
-        iframe.className = 'preview-frame';
-        chatEl.appendChild(wrap);
-        wrap.appendChild(iframe);
-        const doc = iframe.contentWindow.document; doc.open(); doc.write(html); doc.close();
-        wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }
-
-      function renderMessage(role, content, index) {
-        const div = document.createElement('div');
-        const label = role === 'assistant' ? 'Buddy' : role.toUpperCase();
-        div.className = `bubble ${role}`;
-        
-        // Format code blocks with syntax highlighting
-        const formattedContent = content.replace(
-          /```(\w+)?\n([\s\S]*?)```/g, 
-          (match, lang, code) => {
-            return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
-          }
+      
+      btnThinking.classList.remove('hidden');
+      
+      for (const model of modelIds) {
+        tasks.push(
+          askModel(messages, model)
+            .then((c) => {
+              results[model] = c;
+              const t = thinkItems[model];
+              if (t) {
+                t.dot.className = 'dot done';
+                t.status.textContent = 'done';
+              }
+            })
+            .catch((e) => {
+              results[model] = `Error: ${e.message || "Unknown error"}`;
+              const t = thinkItems[model];
+              if (t) {
+                t.dot.className = 'dot error';
+                t.status.textContent = 'error';
+              }
+            })
         );
-        
-        div.innerHTML = `<div class="small muted">${label}</div><div class="body">${escapeHtml(formattedContent)}</div>`;
-        
-        const buttons = [];
-        if (role === 'user') {
-          buttons.push({ title: 'Copy', icon: '📋', onClick: () => navigator.clipboard.writeText(content) });
-          buttons.push({ title: 'Edit', icon: '✏️', onClick: () => editPrompt(index) });
-          buttons.push({ title: 'Delete', icon: '🗑️', onClick: () => deletePrompt(index) });
-        } else {
-          buttons.push({ title: 'Copy Answer', icon: '📋', onClick: () => navigator.clipboard.writeText(content) });
-          const code = extractFirstCodeBlock(content);
-          if (code) buttons.push({ title: 'Preview', icon: '👁️', onClick: () => previewCode(code.code, code.lang) });
-        }
-        div.appendChild(createToolbar(buttons));
-        chatEl.appendChild(div);
-        div.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
-
-      function renderProviders(outputs) {
-        providersEl.innerHTML = '';
-        const order = ['grok', 'deepseek', 'chatgpt'];
-        for (const key of order) {
-          if (!(key in outputs)) continue;
-          const card = document.createElement('div');
-          card.className = 'provider-card';
-          card.innerHTML = `
-            <div class="provider-title">${key.charAt(0).toUpperCase() + key.slice(1)}</div>
-            <div>${escapeHtml(outputs[key] || '')}</div>
-          `;
-          providersEl.appendChild(card);
-        }
+      
+      await Promise.all(tasks);
+      
+      try {
+        const combined = await summarizeCombined(historyArr, query, results, summarizer);
+        setTimeout(() => {
+          if (thinkingPanel.classList.contains('hidden')) {
+            btnThinking.classList.add('hidden');
+          }
+        }, 600);
+        return { ...results, combined };
+      } catch (e) {
+        console.error("Final summarization error:", e);
+        return {
+          ...results,
+          combined: `Failed to generate combined answer: ${e.message || "Unknown error"}`
+        };
       }
+    }
 
-      function renderCombined(text) {
-        combinedEl.style.display = text ? 'block' : 'none';
-        combinedEl.innerHTML = `<div class="small muted">Combined Answer</div><div>${escapeHtml(text || '')}</div>`;
+    function createToolbar(buttons) {
+      const bar = document.createElement('div');
+      bar.className = 'toolbar';
+      for (const { title, icon, onClick } of buttons) {
+        const b = document.createElement('button');
+        b.className = 'btn btn-icon';
+        b.title = title;
+        b.innerHTML = icon;
+        b.onclick = onClick;
+        bar.appendChild(b);
       }
+      return bar;
+    }
 
-      // Sidebar interactions
-      function setSidebarOpen(open) {
-        if (open) { sidebar.classList.add('open'); backdrop.classList.add('show'); }
-        else { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+    function extractFirstCodeBlock(text) {
+      const m = text.match(/```(\w+)?\n([\s\S]*?)```/);
+      if (!m) return null;
+      return { lang: (m[1]||'').toLowerCase(), code: m[2]||'' };
+    }
+
+    function previewCode(code, lang) {
+      const html = !lang || lang === 'html' ? code : `<!doctype html><html><head><style>body{margin:16px;}</style></head><body><pre>${escapeHtml(code)}</pre></body></html>`;
+      const wrap = document.createElement('div');
+      wrap.className = 'bubble assistant preview-container';
+      wrap.innerHTML = '<div class="small muted">Preview</div>';
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'close-preview';
+      closeBtn.innerHTML = '✕';
+      closeBtn.onclick = () => wrap.remove();
+      wrap.appendChild(closeBtn);
+      
+      const iframe = document.createElement('iframe');
+      iframe.className = 'preview-frame';
+      chatEl.appendChild(wrap);
+      wrap.appendChild(iframe);
+      const doc = iframe.contentWindow.document; doc.open(); doc.write(html); doc.close();
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function renderMessage(role, content, index) {
+      const div = document.createElement('div');
+      const label = role === 'assistant' ? 'Buddy' : role.toUpperCase();
+      div.className = `bubble ${role}`;
+      
+      const formattedContent = content.replace(
+        /```(\w+)?\n([\s\S]*?)```/g, 
+        (match, lang, code) => {
+          return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
+        }
+      );
+      
+      div.innerHTML = `<div class="small muted">${label}</div><div class="body">${escapeHtml(formattedContent)}</div>`;
+      
+      const buttons = [];
+      if (role === 'user') {
+        buttons.push({ title: 'Copy', icon: '📋', onClick: () => navigator.clipboard.writeText(content) });
+        buttons.push({ title: 'Edit', icon: '✏️', onClick: () => editPrompt(index) });
+        buttons.push({ title: 'Delete', icon: '🗑️', onClick: () => deletePrompt(index) });
+      } else {
+        buttons.push({ title: 'Copy Answer', icon: '📋', onClick: () => navigator.clipboard.writeText(content) });
+        const code = extractFirstCodeBlock(content);
+        if (code) buttons.push({ title: 'Preview', icon: '👁️', onClick: () => previewCode(code.code, code.lang) });
       }
-      toggleSidebarBtn.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
-      closeSidebarBtn.addEventListener('click', () => setSidebarOpen(false));
-      backdrop.addEventListener('click', () => setSidebarOpen(false));
+      div.appendChild(createToolbar(buttons));
+      chatEl.appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
 
-      queryEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          send();
-        }
-      });
+    function renderProviders(outputs) {
+      providersEl.innerHTML = '';
+      const order = ['grok', 'deepseek', 'chatgpt'];
+      for (const key of order) {
+        if (!(key in outputs)) continue;
+        const card = document.createElement('div');
+        card.className = 'provider-card';
+        card.innerHTML = `
+          <div class="provider-title">${key.charAt(0).toUpperCase() + key.slice(1)}</div>
+          <div>${escapeHtml(outputs[key] || '')}</div>
+        `;
+        providersEl.appendChild(card);
+      }
+    }
 
-      sendBtn.addEventListener('click', send);
+    function renderCombined(text) {
+      combinedEl.style.display = text ? 'block' : 'none';
+      combinedEl.innerHTML = `<div class="small muted">Combined Answer</div><div>${escapeHtml(text || '')}</div>`;
+    }
 
-      attachInput.addEventListener('change', async (e) => {
-        const file = e.target.files?.[0]; if (!file) return;
-        if (file.type.startsWith('image/')) {
-          const dataUrl = await fileToDataURL(file);
-          pendingImage = dataUrl;
-          const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `Image: ${file.name}`; attachmentsEl.appendChild(chip);
-        } else if (file.type.startsWith('text') || /\.(md|json|txt)$/i.test(file.name)) {
-          pendingTextFile = await file.text();
-          const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `File: ${file.name}`; attachmentsEl.appendChild(chip);
-        } else {
-          alert('Only images or text/md/json files supported');
-        }
-        // reset input to allow re-selecting the same file
-        e.target.value = '';
-      });
+    function setSidebarOpen(open) {
+      if (open) { sidebar.classList.add('open'); backdrop.classList.add('show'); }
+      else { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+    }
+    toggleSidebarBtn.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+    closeSidebarBtn.addEventListener('click', () => setSidebarOpen(false));
+    backdrop.addEventListener('click', () => setSidebarOpen(false));
 
-      function fileToDataURL(file) { return new Promise((resolve)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.readAsDataURL(file); }); }
+    queryEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
 
-      async function send() {
-        const q = queryEl.value.trim();
-        if (!q) return;
-        sendBtn.disabled = true;
-        queryEl.value = '';
+    sendBtn.addEventListener('click', send);
 
-        let enriched = q;
-        if (pendingImage) {
-          try { const text = await puter.ai.img2txt(pendingImage); if (text) enriched += `\n\n[Image OCR]:\n${text}`; } catch {}
-        }
-        if (pendingTextFile) { enriched += `\n\n[Attached text]:\n${pendingTextFile.slice(0,20000)}`; }
+    attachInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0]; if (!file) return;
+      if (file.type.startsWith('image/')) {
+        const dataUrl = await fileToDataURL(file);
+        pendingImage = dataUrl;
+        const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `Image: ${file.name}`; attachmentsEl.appendChild(chip);
+      } else if (file.type.startsWith('text') || /\.(md|json|txt)$/i.test(file.name)) {
+        pendingTextFile = await file.text();
+        const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `File: ${file.name}`; attachmentsEl.appendChild(chip);
+      } else {
+        alert('Only images or text/md/json files supported');
+      }
+      e.target.value = '';
+    });
 
-        const userIndex = history.length;
-        const msg = { role: 'user', content: enriched };
-        if (pendingImage) msg.images = [pendingImage];
-        if (pendingTextFile) msg.files = [{ name: 'attachment.txt', type: 'text/plain', content: pendingTextFile.slice(0,20000) }];
-        history.push(msg);
-        renderMessage('user', enriched, userIndex);
-        attachmentsEl.innerHTML=''; pendingImage=null; pendingTextFile=null;
+    function fileToDataURL(file) { return new Promise((resolve)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.readAsDataURL(file); }); }
 
-        const mode = 'parallel';
+    async function send() {
+      const q = queryEl.value.trim();
+      if (!q) return;
+      
+      sendBtn.disabled = true;
+      queryEl.value = '';
+
+      let enriched = q;
+      if (pendingImage) {
         try {
-        let result;
-          // Use gpt-4.1 as summarizer by default
+          const text = await puter.ai.img2txt(pendingImage);
+          if (text) enriched += `\n\n[Image OCR]:\n${text}`;
+        } catch (e) {
+          console.error("Image OCR error:", e);
+        }
+      }
+      if (pendingTextFile) {
+        enriched += `\n\n[Attached text]:\n${pendingTextFile.slice(0, 20000)}`;
+      }
+
+      const userIndex = history.length;
+      const msg = { role: 'user', content: enriched };
+      if (pendingImage) msg.images = [pendingImage];
+      if (pendingTextFile) msg.files = [{ name: 'attachment.txt', type: 'text/plain', content: pendingTextFile.slice(0, 20000) }];
+      
+      history.push(msg);
+      renderMessage('user', enriched, userIndex);
+      attachmentsEl.innerHTML = '';
+      pendingImage = null;
+      pendingTextFile = null;
+
+      try {
+        const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS));
+        const result = await runParallel(modelsToUse, history, enriched, 'gpt-4.1');
+        
+        const assistantContent = result.combined || '[No combined answer could be generated]';
+        const aiIndex = history.length;
+        history.push({ role: 'assistant', content: assistantContent });
+        renderMessage('assistant', assistantContent, aiIndex);
+      } catch (e) {
+        console.error("Send error:", e);
+        const errorMsg = `Error: ${e.message || "Failed to get response"}`;
+        const aiIndex = history.length;
+        history.push({ role: 'assistant', content: errorMsg });
+        renderMessage('assistant', errorMsg, aiIndex);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    let activeEditIndex = null;
+    function editPrompt(index) {
+      if (activeEditIndex !== null) return;
+      const original = history[index]; if (!original || original.role !== 'user') return;
+      activeEditIndex = index;
+      const bubbles = [...chatEl.children];
+      const bubble = bubbles[index];
+      if (!bubble) return;
+      const body = bubble.querySelector('.body');
+      const originalText = original.content;
+      body.innerHTML = '';
+      const ta = document.createElement('textarea');
+      ta.style.width = '100%'; ta.style.minHeight = '120px'; ta.style.maxHeight = 'none'; ta.value = originalText;
+      const bar = document.createElement('div'); bar.className = 'toolbar';
+      const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = 'Save';
+      const cancelBtn = document.createElement('button'); cancelBtn.className = 'btn'; cancelBtn.textContent = 'Cancel';
+      bar.appendChild(saveBtn); bar.appendChild(cancelBtn);
+      body.appendChild(ta); body.appendChild(bar);
+      saveBtn.onclick = () => saveEdit(index, ta.value);
+      cancelBtn.onclick = () => cancelEdit(index, originalText);
+    }
+    function cancelEdit(index, originalText) {
+      activeEditIndex = null;
+      const bubbles = [...chatEl.children];
+      const bubble = bubbles[index]; if (!bubble) return;
+      const body = bubble.querySelector('.body');
+      body.textContent = originalText;
+    }
+    function saveEdit(index, newText) {
+      activeEditIndex = null;
+      history[index].content = newText;
+      while (history.length > index + 1) history.pop();
+      chatEl.innerHTML = '';
+      for (let i=0;i<=index;i++) renderMessage(history[i].role, history[i].content, i);
+      (async () => {
+        sendBtn.disabled = true;
+        try {
           const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS));
-          result = await runParallel(modelsToUse, history, enriched, 'gpt-4.1');
-          const assistantContent = result.combined || '[No combined answer]';
+          const result = await runParallel(modelsToUse, history, newText, 'gpt-4.1');
+          const assistantContent = result.combined || '[No combined answer could be generated]';
           const aiIndex = history.length;
           history.push({ role: 'assistant', content: assistantContent });
           renderMessage('assistant', assistantContent, aiIndex);
-        } catch (e) {
-          const msg = `Error calling providers: ${e?.message || String(e)}`;
-          const aiIndex = history.length;
-          history.push({ role: 'assistant', content: msg });
-          renderMessage('assistant', msg, aiIndex);
-        } finally {
-          sendBtn.disabled = false;
-        }
-      }
+        } finally { sendBtn.disabled = false; }
+      })();
+    }
 
-      let activeEditIndex = null;
-      function editPrompt(index) {
-        if (activeEditIndex !== null) return; // prevent multiple edits
-        const original = history[index]; if (!original || original.role !== 'user') return;
-        activeEditIndex = index;
-        const bubbles = [...chatEl.children];
-        const bubble = bubbles[index];
-        if (!bubble) return;
-        const body = bubble.querySelector('.body');
-        const originalText = original.content;
-        body.innerHTML = '';
-        const ta = document.createElement('textarea');
-        ta.style.width = '100%'; ta.style.minHeight = '120px'; ta.style.maxHeight = 'none'; ta.value = originalText;
-        const bar = document.createElement('div'); bar.className = 'toolbar';
-        const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = 'Save';
-        const cancelBtn = document.createElement('button'); cancelBtn.className = 'btn'; cancelBtn.textContent = 'Cancel';
-        bar.appendChild(saveBtn); bar.appendChild(cancelBtn);
-        body.appendChild(ta); body.appendChild(bar);
-        saveBtn.onclick = () => saveEdit(index, ta.value);
-        cancelBtn.onclick = () => cancelEdit(index, originalText);
-      }
-      function cancelEdit(index, originalText) {
-        activeEditIndex = null;
-        const bubbles = [...chatEl.children];
-        const bubble = bubbles[index]; if (!bubble) return;
-        const body = bubble.querySelector('.body');
-        body.textContent = originalText;
-      }
-      function saveEdit(index, newText) {
-        activeEditIndex = null;
-        history[index].content = newText;
-        while (history.length > index + 1) history.pop();
-        chatEl.innerHTML = '';
-        for (let i=0;i<=index;i++) renderMessage(history[i].role, history[i].content, i);
-        (async () => {
-          sendBtn.disabled = true;
-          try {
-            const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS));
-            const result = await runParallel(modelsToUse, history, newText, 'gpt-4.1');
-            const assistantContent = result.combined || '[No combined answer]';
-            const aiIndex = history.length;
-            history.push({ role: 'assistant', content: assistantContent });
-            renderMessage('assistant', assistantContent, aiIndex);
-          } finally { sendBtn.disabled = false; }
-        })();
-      }
+    function deletePrompt(index) {
+      if (!history[index] || history[index].role !== 'user') return;
+      history.splice(index);
+      chatEl.innerHTML = '';
+      for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
+    }
 
-      function deletePrompt(index) {
-        if (!history[index] || history[index].role !== 'user') return;
-        history.splice(index);
-        chatEl.innerHTML = '';
-        for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
+    function saveState() {
+      const state = { conversations, activeConversationId, selectedModels: Array.from(selectedModels || []) };
+      localStorage.setItem('buddy_state', JSON.stringify(state));
+    }
+    function loadState() {
+      try {
+        const raw = localStorage.getItem('buddy_state');
+        if (!raw) throw new Error('no');
+        const st = JSON.parse(raw);
+        conversations = Array.isArray(st.conversations) ? st.conversations : [];
+        activeConversationId = st.activeConversationId || null;
+        selectedModels = new Set(Array.isArray(st.selectedModels) && st.selectedModels.length ? st.selectedModels : ALL_MODELS);
+      } catch {
+        conversations = [];
+        activeConversationId = null;
+        selectedModels = new Set(ALL_MODELS);
       }
-
-      // Conversations: state + UI
-      function saveState() {
-        const state = { conversations, activeConversationId, selectedModels: Array.from(selectedModels || []) };
-        localStorage.setItem('buddy_state', JSON.stringify(state));
-      }
-      function loadState() {
-        try {
-          const raw = localStorage.getItem('buddy_state');
-          if (!raw) throw new Error('no');
-          const st = JSON.parse(raw);
-          conversations = Array.isArray(st.conversations) ? st.conversations : [];
-          activeConversationId = st.activeConversationId || null;
-          selectedModels = new Set(Array.isArray(st.selectedModels) && st.selectedModels.length ? st.selectedModels : ALL_MODELS);
-        } catch {
-          conversations = [];
-          activeConversationId = null;
-          selectedModels = new Set(ALL_MODELS);
-        }
-      }
-      function ensureDefaultConversation() {
-        if (!conversations.length) {
-          const conv = { id: String(Date.now()), name: 'New Chat', history: [] };
-          conversations.push(conv);
-          activeConversationId = conv.id;
-        }
-      }
-      function setActiveConversation(id) {
-        activeConversationId = id;
-        const conv = conversations.find(c => c.id === id);
-        history = conv.history;
-        chatEl.innerHTML = '';
-        for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
-        saveState();
-        renderConversationList();
-      }
-      function newChat() {
+    }
+    function ensureDefaultConversation() {
+      if (!conversations.length) {
         const conv = { id: String(Date.now()), name: 'New Chat', history: [] };
-        conversations.unshift(conv);
-        setActiveConversation(conv.id);
+        conversations.push(conv);
+        activeConversationId = conv.id;
       }
-      function renameConversation(id, newName) {
-        const c = conversations.find(x => x.id === id); if (!c) return;
-        c.name = newName || 'Untitled';
+    }
+    function setActiveConversation(id) {
+      activeConversationId = id;
+      const conv = conversations.find(c => c.id === id);
+      history = conv.history;
+      chatEl.innerHTML = '';
+      for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
+      saveState();
+      renderConversationList();
+    }
+    function newChat() {
+      const conv = { id: String(Date.now()), name: 'New Chat', history: [] };
+      conversations.unshift(conv);
+      setActiveConversation(conv.id);
+    }
+    function renameConversation(id, newName) {
+      const c = conversations.find(x => x.id === id); if (!c) return;
+      c.name = newName || 'Untitled';
+      saveState();
+      renderConversationList();
+    }
+    function deleteConversation(id) {
+      const idx = conversations.findIndex(x => x.id === id);
+      if (idx === -1) return;
+      conversations.splice(idx,1);
+      if (!conversations.length) {
+        ensureDefaultConversation();
+      }
+      if (activeConversationId === id) {
+        setActiveConversation(conversations[0].id);
+      } else {
         saveState();
         renderConversationList();
       }
-      function deleteConversation(id) {
-        const idx = conversations.findIndex(x => x.id === id);
-        if (idx === -1) return;
-        conversations.splice(idx,1);
-        if (!conversations.length) {
-          ensureDefaultConversation();
+    }
+    async function exportConversationPdf(id) {
+      const c = conversations.find(x => x.id === id); if (!c) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 36;
+      const lineHeight = 16;
+      doc.setFont('helvetica',''); doc.setFontSize(12);
+      doc.text(`Conversation: ${c.name}`, 36, y); y += 24;
+      for (const m of c.history) {
+        doc.setFont(undefined,'bold'); doc.text(m.role.toUpperCase()+':', 36, y); y += lineHeight; doc.setFont(undefined,'normal');
+        const text = (m.content || '').replace(/\r/g,'');
+        const lines = doc.splitTextToSize(text, pageWidth-72);
+        for (const ln of lines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
+        if (Array.isArray(m.images)) {
+          for (const img of m.images) { if (y > 700) { doc.addPage(); y = 36; } try { doc.addImage(img, 'PNG', 36, y, pageWidth-72, (pageWidth-72)*0.56); y += 12 + (pageWidth-72)*0.56; } catch {} }
         }
-        if (activeConversationId === id) {
-          setActiveConversation(conversations[0].id);
-        } else {
-          saveState();
-          renderConversationList();
-        }
-      }
-      async function exportConversationPdf(id) {
-        const c = conversations.find(x => x.id === id); if (!c) return;
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-        const pageWidth = doc.internal.pageSize.getWidth();
-        let y = 36;
-        const lineHeight = 16;
-        doc.setFont('helvetica',''); doc.setFontSize(12);
-        doc.text(`Conversation: ${c.name}`, 36, y); y += 24;
-        for (const m of c.history) {
-          doc.setFont(undefined,'bold'); doc.text(m.role.toUpperCase()+':', 36, y); y += lineHeight; doc.setFont(undefined,'normal');
-          const text = (m.content || '').replace(/\r/g,'');
-          const lines = doc.splitTextToSize(text, pageWidth-72);
-          for (const ln of lines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
-          // Images
-          if (Array.isArray(m.images)) {
-            for (const img of m.images) { if (y > 700) { doc.addPage(); y = 36; } try { doc.addImage(img, 'PNG', 36, y, pageWidth-72, (pageWidth-72)*0.56); y += 12 + (pageWidth-72)*0.56; } catch {} }
-          }
-          // Files (text or 3D names)
-          if (Array.isArray(m.files)) {
-            for (const f of m.files) {
-              const label = f.type && f.type.startsWith('text') ? `File (${f.name}):` : `Attachment: ${f.name}`;
-              if (y > 780) { doc.addPage(); y = 36; }
-              doc.setFont(undefined,'bold'); doc.text(label, 36, y); y += lineHeight; doc.setFont(undefined,'normal');
-              if (f.content && typeof f.content === 'string') {
-                const flines = doc.splitTextToSize(f.content.slice(0,5000), pageWidth-72);
-                for (const ln of flines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
-              }
+        if (Array.isArray(m.files)) {
+          for (const f of m.files) {
+            const label = f.type && f.type.startsWith('text') ? `File (${f.name}):` : `Attachment: ${f.name}`;
+            if (y > 780) { doc.addPage(); y = 36; }
+            doc.setFont(undefined,'bold'); doc.text(label, 36, y); y += lineHeight; doc.setFont(undefined,'normal');
+            if (f.content && typeof f.content === 'string') {
+              const flines = doc.splitTextToSize(f.content.slice(0,5000), pageWidth-72);
+              for (const ln of flines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
             }
           }
-          y += 8;
         }
-        doc.save(`${c.name.replace(/[^a-z0-9\-_]+/gi,'_')}.pdf`);
+        y += 8;
       }
-      function renderConversationList() {
-        convList.innerHTML = '';
-        for (const c of conversations) {
-          const row = document.createElement('div'); row.className='conv-item';
-          const input = document.createElement('input'); input.className='conv-name'; input.value = c.name; input.title='Click to edit name';
-          input.onchange = () => renameConversation(c.id, input.value);
-          input.onclick = (e) => { if (activeConversationId !== c.id) setActiveConversation(c.id); };
-          const del = document.createElement('button'); del.className='icon'; del.textContent='🗑️'; del.title='Delete'; del.onclick = () => deleteConversation(c.id);
-          const exp = document.createElement('button'); exp.className='icon'; exp.textContent='⬇️'; exp.title='Export PDF'; exp.onclick = () => exportConversationPdf(c.id);
-          row.appendChild(input); row.appendChild(exp); row.appendChild(del);
-          if (activeConversationId === c.id) row.style.borderColor = 'var(--accent)';
-          convList.appendChild(row);
-        }
+      doc.save(`${c.name.replace(/[^a-z0-9\-_]+/gi,'_')}.pdf`);
+    }
+    function renderConversationList() {
+      convList.innerHTML = '';
+      for (const c of conversations) {
+        const row = document.createElement('div'); row.className='conv-item';
+        const input = document.createElement('input'); input.className='conv-name'; input.value = c.name; input.title='Click to edit name';
+        input.onchange = () => renameConversation(c.id, input.value);
+        input.onclick = (e) => { if (activeConversationId !== c.id) setActiveConversation(c.id); };
+        const del = document.createElement('button'); del.className='icon'; del.textContent='🗑️'; del.title='Delete'; del.onclick = () => deleteConversation(c.id);
+        const exp = document.createElement('button'); exp.className='icon'; exp.textContent='⬇️'; exp.title='Export PDF'; exp.onclick = () => exportConversationPdf(c.id);
+        row.appendChild(input); row.appendChild(exp); row.appendChild(del);
+        if (activeConversationId === c.id) row.style.borderColor = 'var(--accent)';
+        convList.appendChild(row);
       }
-      function renderModelList() {
-        modelList.innerHTML = '';
-        for (const mid of ALL_MODELS) {
-          const row = document.createElement('label'); row.className='model-row';
-          const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = (selectedModels||new Set(ALL_MODELS)).has(mid);
-          cb.onchange = () => { if (!selectedModels) selectedModels = new Set(ALL_MODELS); if (cb.checked) selectedModels.add(mid); else selectedModels.delete(mid); saveState(); };
-          const span = document.createElement('span'); span.textContent = mid;
-          row.appendChild(cb); row.appendChild(span);
-          modelList.appendChild(row);
-        }
+    }
+    function renderModelList() {
+      modelList.innerHTML = '';
+      for (const mid of ALL_MODELS) {
+        const row = document.createElement('label'); row.className='model-row';
+        const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = (selectedModels||new Set(ALL_MODELS)).has(mid);
+        cb.onchange = () => { if (!selectedModels) selectedModels = new Set(ALL_MODELS); if (cb.checked) selectedModels.add(mid); else selectedModels.delete(mid); saveState(); };
+        const span = document.createElement('span'); span.textContent = mid;
+        row.appendChild(cb); row.appendChild(span);
+        modelList.appendChild(row);
       }
-      btnNewChat.addEventListener('click', newChat);
-      btnThinking.addEventListener('click', () => {
-        const open = thinkingPanel.classList.contains('hidden');
-        if (open) { thinkingPanel.classList.remove('hidden'); }
-        else { thinkingPanel.classList.add('hidden'); if (thinkingList.querySelector('.dot.pending')) { /* keep button */ } else { btnThinking.classList.add('hidden'); } }
-      });
-      modelsToggle.addEventListener('click', () => {
-        const closed = modelList.classList.contains('hidden');
-        if (closed) { modelList.classList.remove('hidden'); modelsToggle.textContent = '▼'; }
-        else { modelList.classList.add('hidden'); modelsToggle.textContent = '▶'; }
-      });
+    }
+    btnNewChat.addEventListener('click', newChat);
+    btnThinking.addEventListener('click', () => {
+      const open = thinkingPanel.classList.contains('hidden');
+      if (open) { thinkingPanel.classList.remove('hidden'); }
+      else { thinkingPanel.classList.add('hidden'); if (thinkingList.querySelector('.dot.pending')) { /* keep button */ } else { btnThinking.classList.add('hidden'); } }
+    });
+    modelsToggle.addEventListener('click', () => {
+      const closed = modelList.classList.contains('hidden');
+      if (closed) { modelList.classList.remove('hidden'); modelsToggle.textContent = '▼'; }
+      else { modelList.classList.add('hidden'); modelsToggle.textContent = '▶'; }
+    });
 
-      // Init
-      loadState();
-      ensureDefaultConversation();
-      history = (conversations.find(c => c.id === activeConversationId) || conversations[0]).history;
-      activeConversationId = (conversations.find(c => c.id === activeConversationId) || conversations[0]).id;
-      renderConversationList();
-      renderModelList();
-      setActiveConversation(activeConversationId);
-    </script>
-  </body>
+    // Initialize the app
+    loadState();
+    ensureDefaultConversation();
+    history = (conversations.find(c => c.id === activeConversationId) || conversations[0]).history;
+    activeConversationId = (conversations.find(c => c.id === activeConversationId) || conversations[0]).id;
+    renderConversationList();
+    renderModelList();
+    setActiveConversation(activeConversationId);
+  </script>
+</body>
 </html>
