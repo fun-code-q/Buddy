@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buddy AI</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+      :root {
+        --bg: #0b0d10;
+        --panel: #12151a;
+        --muted: #9aa4b2;
+        --text: #e8eef5;
+        --accent: #6aa6ff;
+        --accent-2: #9b6bff;
+        --border: #1f2430;
+        --ok: #3ad29f;
+        --warn: #ffcc66;
+        --err: #ff6b6b;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        background: radial-gradient(1200px 800px at 10% -10%, rgba(106,166,255,0.15), transparent 50%),
+                    radial-gradient(1000px 600px at 110% -20%, rgba(155,107,255,0.12), transparent 50%),
+                    var(--bg);
+        color: var(--text);
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .title {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        align-items: center;
+      }
+      .toggle-group, .mode-group {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+      }
+      .toggle {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .mode-extra {
+        display: none;
+        gap: 8px;
+        align-items: center;
+      }
+      .input-bar {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      textarea {
+        width: 100%;
+        min-height: 60px;
+        max-height: 200px;
+        resize: vertical;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+        outline: none;
+        font-size: 15px;
+      }
+      button#sendBtn {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: white;
+        border: none;
+        padding: 12px 16px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button#sendBtn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .chat {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .bubble {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        line-height: 1.5;
+      }
+      .user { border-left: 3px solid var(--accent); }
+      .assistant { border-left: 3px solid var(--ok); }
+      .providers {
+        display: grid;
+        gap: 10px;
+      }
+      .provider-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .provider-title {
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .muted { color: var(--muted); }
+      .small { font-size: 12px; }
+      .combined {
+        border-left: 3px solid var(--ok);
+      }
+      code, pre { white-space: pre-wrap; }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="title">Buddy AI</div>
+        <div class="controls">
+          <div class="toggle-group" title="Enable or disable providers">
+            <div class="toggle"><input id="cbGrok" type="checkbox" checked /><label for="cbGrok">Grok</label></div>
+            <div class="toggle"><input id="cbDeepseek" type="checkbox" checked /><label for="cbDeepseek">DeepSeek</label></div>
+            <div class="toggle"><input id="cbChatgpt" type="checkbox" checked /><label for="cbChatgpt">ChatGPT</label></div>
+          </div>
+          <div class="mode-group">
+            <div class="toggle"><input id="modeParallel" name="mode" type="radio" value="parallel" checked /><label for="modeParallel">Parallel</label></div>
+            <div class="toggle"><input id="modePipeline" name="mode" type="radio" value="pipeline" /><label for="modePipeline">Pipeline</label></div>
+            <div id="pipelineExtras" class="mode-extra">
+              <span class="muted small">Retriever</span>
+              <select id="retrieverSel">
+                <option value="grok">Grok</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="chatgpt">ChatGPT</option>
+              </select>
+              <span class="muted small">Summarizer</span>
+              <select id="summarizerSel">
+                <option value="chatgpt">ChatGPT</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="grok">Grok</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <textarea id="query" placeholder="Ask anything... (Shift+Enter for newline)"></textarea>
+        <button id="sendBtn">Send</button>
+      </div>
+
+      <div class="chat" id="chat"></div>
+
+      <div class="providers" id="providers"></div>
+
+      <div class="bubble combined" id="combined" style="display:none"></div>
+
+      <div class="muted small">No login. Your keys stay on your server function. Refresh clears the conversation.</div>
+    </div>
+
+    <script>
+      const PROVIDER_MODELS = {
+        chatgpt: 'gpt-4o',
+        deepseek: 'deepseek-chat',
+        grok: 'x-ai/grok-4',
+      };
+
+      const chatEl = document.getElementById('chat');
+      const providersEl = document.getElementById('providers');
+      const combinedEl = document.getElementById('combined');
+      const queryEl = document.getElementById('query');
+      const sendBtn = document.getElementById('sendBtn');
+
+      const cbGrok = document.getElementById('cbGrok');
+      const cbDeepseek = document.getElementById('cbDeepseek');
+      const cbChatgpt = document.getElementById('cbChatgpt');
+
+      const modeParallel = document.getElementById('modeParallel');
+      const modePipeline = document.getElementById('modePipeline');
+      const pipelineExtras = document.getElementById('pipelineExtras');
+      const retrieverSel = document.getElementById('retrieverSel');
+      const summarizerSel = document.getElementById('summarizerSel');
+
+      const history = []; // Array<{ role: 'user'|'assistant', content: string }>
+
+      function escapeHtml(str) {
+        return str
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;');
+      }
+
+      function buildMessages(historyArr, userQuery) {
+        const msgs = [
+          { role: 'system', content: 'You are an expert assistant. Provide accurate, concise, well-structured answers.' }
+        ];
+        if (Array.isArray(historyArr)) {
+          for (const m of historyArr) {
+            if (!m || !m.role || !m.content) continue;
+            if (m.role === 'user' || m.role === 'assistant' || m.role === 'system') {
+              msgs.push({ role: m.role, content: String(m.content) });
+            }
+          }
+        }
+        if (userQuery && userQuery.trim()) {
+          msgs.push({ role: 'user', content: userQuery });
+        }
+        return msgs;
+      }
+
+      function extractText(resp) {
+        if (typeof resp === 'string') return resp;
+        if (resp?.message?.content) return resp.message.content;
+        if (resp?.text) return resp.text;
+        try { return JSON.stringify(resp); } catch { return String(resp); }
+      }
+
+      async function askChatGPT(messages) {
+        const resp = await puter.ai.chat(messages, { model: PROVIDER_MODELS.chatgpt });
+        return extractText(resp);
+      }
+      async function askDeepseek(messages) {
+        const resp = await puter.ai.chat(messages, { model: PROVIDER_MODELS.deepseek });
+        return extractText(resp);
+      }
+      async function askGrok(messages) {
+        const resp = await puter.ai.chat(messages, { model: PROVIDER_MODELS.grok });
+        return extractText(resp);
+      }
+
+      async function summarizeCombined(historyArr, query, answersByProvider, summarizer) {
+        const ordered = Object.keys(answersByProvider);
+        const bullets = ordered.map(p => `- ${p}: ${(answersByProvider[p] || '').slice(0, 8000)}`).join('\n');
+        const prompt = `You are an expert editor that merges multiple AI answers into one concise, accurate, and well-structured response.\n\nUser query:\n${query}\n\nModel answers:\n${bullets}`;
+        const msgs = [
+          { role: 'system', content: 'You are a careful, reliable editor and synthesizer.' },
+          ...historyArr.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6),
+          { role: 'user', content: prompt },
+        ];
+        if (summarizer === 'deepseek') return askDeepseek(msgs);
+        if (summarizer === 'grok') return askGrok(msgs);
+        return askChatGPT(msgs);
+      }
+
+      async function runParallel(enabledProviders, historyArr, query, summarizer) {
+        const messages = buildMessages(historyArr, query);
+        const results = {};
+        const tasks = [];
+        const set = new Set(enabledProviders.map(p => p.toLowerCase()));
+        if (set.has('chatgpt')) tasks.push(askChatGPT(messages).then(c => results.chatgpt = c).catch(e => results.chatgpt = `Error: ${e.message}`));
+        if (set.has('deepseek')) tasks.push(askDeepseek(messages).then(c => results.deepseek = c).catch(e => results.deepseek = `Error: ${e.message}`));
+        if (set.has('grok')) tasks.push(askGrok(messages).then(c => results.grok = c).catch(e => results.grok = `Error: ${e.message}`));
+        await Promise.all(tasks);
+        const combined = await summarizeCombined(historyArr, query, results, summarizer).catch(e => `Combined error: ${e.message}`);
+        return { ...results, combined };
+      }
+
+      async function runPipeline(retriever, summarizer, historyArr, query) {
+        const messages = buildMessages(historyArr, query);
+        let draft = '';
+        if (retriever === 'deepseek') draft = await askDeepseek(messages).catch(e => `Error: ${e.message}`);
+        else if (retriever === 'grok') draft = await askGrok(messages).catch(e => `Error: ${e.message}`);
+        else draft = await askChatGPT(messages).catch(e => `Error: ${e.message}`);
+        const sumPrompt = `You are given a user query and a draft answer. Improve it into a final, accurate, concise answer.\n\nUser query:\n${query}\n\nDraft answer:\n${draft}`;
+        const sumMsgs = buildMessages(historyArr.filter(m => m.role !== 'system'), sumPrompt);
+        let combined = '';
+        if (summarizer === 'deepseek') combined = await askDeepseek(sumMsgs).catch(e => `Error: ${e.message}`);
+        else if (summarizer === 'grok') combined = await askGrok(sumMsgs).catch(e => `Error: ${e.message}`);
+        else combined = await askChatGPT(sumMsgs).catch(e => `Error: ${e.message}`);
+        const results = {};
+        results[retriever] = draft;
+        return { ...results, combined };
+      }
+
+      function renderMessage(role, content) {
+        const div = document.createElement('div');
+        div.className = `bubble ${role}`;
+        div.innerHTML = `<div class="small muted">${role.toUpperCase()}</div><div>${content}</div>`;
+        chatEl.appendChild(div);
+        div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+
+      function renderProviders(outputs) {
+        providersEl.innerHTML = '';
+        const order = ['grok', 'deepseek', 'chatgpt'];
+        for (const key of order) {
+          if (!(key in outputs)) continue;
+          const card = document.createElement('div');
+          card.className = 'provider-card';
+          card.innerHTML = `
+            <div class="provider-title">${key.charAt(0).toUpperCase() + key.slice(1)}</div>
+            <div>${escapeHtml(outputs[key] || '')}</div>
+          `;
+          providersEl.appendChild(card);
+        }
+      }
+
+      function renderCombined(text) {
+        combinedEl.style.display = text ? 'block' : 'none';
+        combinedEl.innerHTML = `<div class="small muted">Combined Answer</div><div>${escapeHtml(text || '')}</div>`;
+      }
+
+      function currentProviders() {
+        const list = [];
+        if (cbGrok.checked) list.push('grok');
+        if (cbDeepseek.checked) list.push('deepseek');
+        if (cbChatgpt.checked) list.push('chatgpt');
+        return list;
+      }
+
+      function currentMode() {
+        return modePipeline.checked ? 'pipeline' : 'parallel';
+      }
+
+      modeParallel.addEventListener('change', () => {
+        pipelineExtras.style.display = 'none';
+      });
+      modePipeline.addEventListener('change', () => {
+        pipelineExtras.style.display = 'flex';
+      });
+
+      queryEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          send();
+        }
+      });
+
+      sendBtn.addEventListener('click', send);
+
+      async function send() {
+        const q = queryEl.value.trim();
+        if (!q) return;
+        sendBtn.disabled = true;
+        queryEl.value = '';
+
+        history.push({ role: 'user', content: q });
+        renderMessage('user', escapeHtml(q));
+
+        const enabledProviders = currentProviders();
+        const mode = currentMode();
+        try {
+          let result;
+          if (mode === 'pipeline') {
+            result = await runPipeline(retrieverSel.value, summarizerSel.value, history, q);
+          } else {
+            result = await runParallel(enabledProviders, history, q, summarizerSel.value);
+          }
+          renderProviders(result);
+          renderCombined(result.combined || '');
+          const assistantContent = result.combined || '[No combined answer]';
+          history.push({ role: 'assistant', content: assistantContent });
+          renderMessage('assistant', escapeHtml(assistantContent));
+        } catch (e) {
+          renderCombined(`Error calling providers: ${escapeHtml(e.message || String(e))}`);
+        } finally {
+          sendBtn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+  </html>
+
+

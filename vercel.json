@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/buddy.js", "use": "@vercel/node" },
+    { "src": "index.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/buddy", "dest": "/api/buddy.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
+
+
