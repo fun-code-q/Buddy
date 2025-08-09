@@ -596,83 +596,6 @@
       border: none;
     }
 
-    /* AI Status Bar */
-    .ai-status-bar {
-      padding: 8px 16px;
-      background: var(--bg-secondary);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      font-size: 14px;
-    }
-
-    .ai-model {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 8px;
-      border-radius: 6px;
-      background: var(--bg-tertiary);
-    }
-
-    .ai-model.active {
-      background: rgba(58, 210, 159, 0.15);
-      color: var(--success);
-    }
-
-    .ai-model-icon {
-      font-size: 12px;
-    }
-
-    .progress-container {
-      flex: 1;
-      height: 6px;
-      background: var(--bg-tertiary);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-      width: 0;
-      transition: width 0.3s ease;
-    }
-
-    /* Loading Animation */
-    .typing-indicator {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 8px;
-    }
-
-    .typing-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--text-secondary);
-      border-radius: 50%;
-      animation: typingAnimation 1.4s infinite ease-in-out;
-    }
-
-    .typing-dot:nth-child(1) {
-      animation-delay: 0s;
-    }
-
-    .typing-dot:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-
-    .typing-dot:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-
-    @keyframes typingAnimation {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-4px); }
-    }
-
     /* Responsive */
     @media (max-width: 768px) {
       .sidebar {
@@ -718,7 +641,7 @@
     
     <div class="sidebar-content">
       <div class="sidebar-section">
-        <button class="new-chat-btn" id="newChatBtn">
+        <button class="new-chat-btn">
           <i class="fas fa-plus"></i>
           New Chat
         </button>
@@ -726,47 +649,47 @@
       
       <div class="sidebar-section">
         <div class="section-title">Conversations</div>
-        <div class="conversation-list" id="conversationList">
-          <!-- Conversations will be added dynamically -->
+        <div class="conversation-list">
+          <!-- Conversations will be added dynamically if needed -->
         </div>
       </div>
       
       <div class="sidebar-section">
         <div class="section-title">Models</div>
         <div class="model-list">
-          <div class="conversation-item" data-model="gpt-4">
+          <div class="conversation-item" data-model="gpt-4o">
             <div class="conversation-icon">
               <i class="fas fa-brain"></i>
             </div>
-            <div class="conversation-name">GPT-4</div>
+            <div class="conversation-name">GPT-4o</div>
           </div>
           
-          <div class="conversation-item" data-model="claude-3">
+          <div class="conversation-item" data-model="claude-3-5-sonnet">
             <div class="conversation-icon">
               <i class="fas fa-brain"></i>
             </div>
             <div class="conversation-name">Claude 3.5</div>
           </div>
           
-          <div class="conversation-item" data-model="llama-3">
-            <div class="conversation-icon">
-              <i class="fas fa-brain"></i>
-            </div>
-            <div class="conversation-name">Llama 3.1</div>
-          </div>
-          
-          <div class="conversation-item" data-model="grok">
+          <div class="conversation-item" data-model="grok-beta">
             <div class="conversation-icon">
               <i class="fas fa-brain"></i>
             </div>
             <div class="conversation-name">Grok</div>
           </div>
           
-          <div class="conversation-item" data-model="deepseek">
+          <div class="conversation-item" data-model="deepseek-chat">
             <div class="conversation-icon">
               <i class="fas fa-brain"></i>
             </div>
             <div class="conversation-name">Deepseek</div>
+          </div>
+          
+          <div class="conversation-item" data-model="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">
+            <div class="conversation-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="conversation-name">Llama</div>
           </div>
         </div>
       </div>
@@ -779,75 +702,30 @@
       <button class="toggle-sidebar">
         <i class="fas fa-bars"></i>
       </button>
-      <div class="current-conversation" id="currentConversation">New Conversation</div>
+      <div class="current-conversation">Buddy AI Chat</div>
     </div>
     
-    <div class="chat-container" id="chatContainer">
-      <div class="message assistant">
-        <div class="avatar">
-          <i class="fas fa-robot"></i>
-        </div>
-        <div class="message-content">
-          <div class="message-header">Buddy AI</div>
-          <div class="message-body">
-            <p>Hello! I'm Buddy, your AI assistant. How can I help you today?</p>
-            <p>Here are some things I can do:</p>
-            <ul>
-              <li>Answer your questions</li>
-              <li>Help with coding problems</li>
-              <li>Generate content</li>
-              <li>Build complete web applications</li>
-            </ul>
-            <p>Select an AI model from the sidebar to get started!</p>
-          </div>
-        </div>
-      </div>
+    <div class="chat-container">
+      <!-- Messages will be added dynamically -->
     </div>
     
     <div class="composer">
       <div class="composer-inner">
-        <textarea id="userInput" placeholder="Ask Buddy anything..."></textarea>
-        <button class="build-btn" id="buildBtn" title="Build from prompt">
+        <textarea placeholder="Ask Buddy anything..."></textarea>
+        <button class="build-btn" title="Build from prompt">
           <i class="fas fa-hammer"></i>
         </button>
-        <button class="send-btn" id="sendBtn">
+        <button class="send-btn">
           <i class="fas fa-paper-plane"></i>
         </button>
       </div>
     </div>
     
-    <!-- AI Status Bar -->
-    <div class="ai-status-bar" id="aiStatusBar">
-      <div class="progress-container">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-      <div class="ai-model" id="problemSolverModel">
-        <i class="ai-model-icon fas fa-question-circle"></i>
-        <span>Problem Solver</span>
-      </div>
-      <div class="ai-model" id="researcherModel">
-        <i class="ai-model-icon fas fa-search"></i>
-        <span>Researcher</span>
-      </div>
-      <div class="ai-model" id="architectModel">
-        <i class="ai-model-icon fas fa-sitemap"></i>
-        <span>Architect</span>
-      </div>
-      <div class="ai-model" id="coderModel">
-        <i class="ai-model-icon fas fa-code"></i>
-        <span>Coder</span>
-      </div>
-      <div class="ai-model" id="guideModel">
-        <i class="ai-model-icon fas fa-compass"></i>
-        <span>Guide</span>
-      </div>
-    </div>
-    
     <!-- Builder Panel -->
-    <div class="builder-panel" id="builderPanel">
+    <div class="builder-panel">
       <div class="builder-header">
         <div class="builder-title">Project Builder</div>
-        <button class="close-builder" id="closeBuilder">
+        <button class="close-builder">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -857,42 +735,42 @@
           <div class="file-explorer-header">
             <h3>Project Files</h3>
             <div class="file-actions">
-              <button class="file-action-btn" id="newFileBtn">
+              <button class="file-action-btn" id="new-file-btn">
                 <i class="fas fa-file"></i>
               </button>
-              <button class="file-action-btn" id="newFolderBtn">
+              <button class="file-action-btn" id="new-folder-btn">
                 <i class="fas fa-folder"></i>
               </button>
             </div>
           </div>
           
-          <div class="file-list" id="fileList">
+          <div class="file-list">
             <!-- Files will be added dynamically -->
           </div>
         </div>
         
         <div class="editor-preview-container">
           <div class="editor-tabs">
-            <div class="editor-tab active" data-tab="editor">Editor</div>
-            <div class="editor-tab" data-tab="preview">Preview</div>
+            <div class="editor-tab active">Editor</div>
+            <div class="editor-tab">Preview</div>
           </div>
           
           <div class="editor-content">
             <div class="editor-pane">
-              <textarea class="code-editor" id="codeEditor"></textarea>
+              <textarea class="code-editor"></textarea>
               
               <div class="editor-actions">
-                <button class="editor-btn" id="saveFileBtn">
+                <button class="editor-btn" id="save-btn">
                   <i class="fas fa-save"></i> Save
                 </button>
-                <button class="editor-btn primary" id="runProjectBtn">
+                <button class="editor-btn primary" id="run-btn">
                   <i class="fas fa-play"></i> Run Project
                 </button>
               </div>
             </div>
             
             <div class="preview-pane">
-              <iframe class="preview-frame" id="previewFrame"></iframe>
+              <iframe class="preview-frame"></iframe>
             </div>
           </div>
         </div>
@@ -901,500 +779,292 @@
   </main>
 
   <script>
-    // State management
-    const state = {
-      currentConversation: null,
-      conversations: [],
-      activeModel: 'gpt-4',
-      project: {
-        files: [],
-        currentFile: null,
-        structure: null
-      },
-      aiStatus: {
-        problemSolver: false,
-        researcher: false,
-        architect: false,
-        coder: false,
-        guide: false
-      }
+    // UI Elements
+    const sidebar = document.querySelector('.sidebar');
+    const toggleSidebarBtn = document.querySelector('.toggle-sidebar');
+    const closeSidebarBtn = document.querySelector('.close-sidebar');
+    const chatContainer = document.querySelector('.chat-container');
+    const textarea = document.querySelector('.composer textarea');
+    const sendBtn = document.querySelector('.send-btn');
+    const buildBtn = document.querySelector('.build-btn');
+    const builderPanel = document.querySelector('.builder-panel');
+    const closeBuilderBtn = document.querySelector('.close-builder');
+    const modelItems = document.querySelectorAll('.model-list .conversation-item');
+    const fileList = document.querySelector('.file-list');
+    const codeEditor = document.querySelector('.code-editor');
+    const saveBtn = document.querySelector('#save-btn');
+    const runBtn = document.querySelector('#run-btn');
+    const editorTabs = document.querySelectorAll('.editor-tab');
+    const editorPane = document.querySelector('.editor-pane');
+    const previewPane = document.querySelector('.preview-pane');
+    const previewFrame = document.querySelector('.preview-frame');
+    const newFileBtn = document.querySelector('#new-file-btn');
+    const newFolderBtn = document.querySelector('#new-folder-btn');
+
+    // State
+    let currentModel = 'gpt-4o';
+    let currentProjectPath = '';
+    let currentFilePath = '';
+    let currentHostingUrl = '';
+    let chatHistory = [];
+
+    // Models mapping
+    const models = {
+      'gpt-4o': 'gpt-4o',
+      'claude-3-5-sonnet': 'claude-3-5-sonnet',
+      'grok-beta': 'grok-beta',
+      'deepseek-chat': 'deepseek-chat',
+      'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo': 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'
     };
 
-    // DOM elements
-    const elements = {
-      sidebar: document.querySelector('.sidebar'),
-      toggleSidebar: document.querySelector('.toggle-sidebar'),
-      closeSidebar: document.querySelector('.close-sidebar'),
-      newChatBtn: document.getElementById('newChatBtn'),
-      conversationList: document.getElementById('conversationList'),
-      currentConversation: document.getElementById('currentConversation'),
-      chatContainer: document.getElementById('chatContainer'),
-      userInput: document.getElementById('userInput'),
-      sendBtn: document.getElementById('sendBtn'),
-      buildBtn: document.getElementById('buildBtn'),
-      builderPanel: document.getElementById('builderPanel'),
-      closeBuilder: document.getElementById('closeBuilder'),
-      fileList: document.getElementById('fileList'),
-      newFileBtn: document.getElementById('newFileBtn'),
-      newFolderBtn: document.getElementById('newFolderBtn'),
-      codeEditor: document.getElementById('codeEditor'),
-      saveFileBtn: document.getElementById('saveFileBtn'),
-      runProjectBtn: document.getElementById('runProjectBtn'),
-      previewFrame: document.getElementById('previewFrame'),
-      editorTabs: document.querySelectorAll('.editor-tab'),
-      problemSolverModel: document.getElementById('problemSolverModel'),
-      researcherModel: document.getElementById('researcherModel'),
-      architectModel: document.getElementById('architectModel'),
-      coderModel: document.getElementById('coderModel'),
-      guideModel: document.getElementById('guideModel'),
-      progressBar: document.getElementById('progressBar')
+    // Agent models
+    const agentModels = {
+      coordinator: 'grok-beta',
+      search: 'deepseek-chat',
+      architecture: 'claude-3-5-sonnet',
+      coder: 'gpt-4o',
+      guider: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'
     };
 
-    // Initialize the app
-    function init() {
-      setupEventListeners();
-      createNewConversation();
-      loadConversations();
-    }
+    // Toggle sidebar
+    toggleSidebarBtn.addEventListener('click', () => sidebar.classList.toggle('active'));
+    closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
 
-    // Set up event listeners
-    function setupEventListeners() {
-      // Sidebar interactions
-      elements.toggleSidebar.addEventListener('click', () => {
-        elements.sidebar.classList.toggle('active');
+    // Toggle builder panel
+    closeBuilderBtn.addEventListener('click', () => builderPanel.classList.remove('active'));
+
+    // Model selection
+    modelItems.forEach(item => {
+      item.addEventListener('click', () => {
+        modelItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        currentModel = item.dataset.model;
       });
-      
-      elements.closeSidebar.addEventListener('click', () => {
-        elements.sidebar.classList.remove('active');
-      });
-      
-      // Model selection
-      document.querySelectorAll('.conversation-item[data-model]').forEach(item => {
-        item.addEventListener('click', () => {
-          state.activeModel = item.dataset.model;
-          document.querySelectorAll('.conversation-item').forEach(i => i.classList.remove('active'));
-          item.classList.add('active');
-          addMessage('assistant', `Switched to ${item.querySelector('.conversation-name').textContent} model. How can I help you?`);
-        });
-      });
-      
-      // New conversation
-      elements.newChatBtn.addEventListener('click', createNewConversation);
-      
-      // Chat interactions
-      elements.userInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
+    });
+    // Set default active
+    document.querySelector('.model-list .conversation-item').classList.add('active');
+
+    // Auto-resize textarea
+    textarea.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
+
+    // Switch editor tabs
+    editorTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        editorTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        if (tab.textContent === 'Preview') {
+          editorPane.style.display = 'none';
+          previewPane.classList.add('active');
+          if (currentHostingUrl) previewFrame.src = currentHostingUrl;
+        } else {
+          editorPane.style.display = 'flex';
+          previewPane.classList.remove('active');
         }
       });
-      
-      elements.sendBtn.addEventListener('click', sendMessage);
-      
-      // Builder interactions
-      elements.buildBtn.addEventListener('click', () => {
-        elements.builderPanel.classList.toggle('active');
-        if (elements.builderPanel.classList.contains('active') {
-          initializeProjectBuilder();
-        }
-      });
-      
-      elements.closeBuilder.addEventListener('click', () => {
-        elements.builderPanel.classList.remove('active');
-      });
-      
-      // Editor tabs
-      elements.editorTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          elements.editorTabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          
-          if (tab.dataset.tab === 'preview') {
-            document.querySelector('.editor-pane').style.display = 'none';
-            document.querySelector('.preview-pane').classList.add('active');
-            updatePreview();
-          } else {
-            document.querySelector('.editor-pane').style.display = 'flex';
-            document.querySelector('.preview-pane').classList.remove('active');
-          }
-        });
-      });
-      
-      // File actions
-      elements.newFileBtn.addEventListener('click', () => {
-        const fileName = prompt('Enter file name (include extension):', 'newfile.js');
-        if (fileName) {
-          addFileToProject(fileName, '');
-        }
-      });
-      
-      elements.newFolderBtn.addEventListener('click', () => {
-        const folderName = prompt('Enter folder name:', 'newfolder');
-        if (folderName) {
-          addFileToProject(folderName + '/', null, true);
-        }
-      });
-      
-      elements.saveFileBtn.addEventListener('click', saveCurrentFile);
-      elements.runProjectBtn.addEventListener('click', runProject);
-      
-      // Auto-resize textarea
-      elements.userInput.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-      });
-      
-      // Initial resize
-      elements.userInput.dispatchEvent(new Event('input'));
-    }
+    });
 
-    // Conversation management
-    function createNewConversation() {
-      const conversation = {
-        id: Date.now(),
-        title: 'New Conversation',
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      state.conversations.unshift(conversation);
-      state.currentConversation = conversation;
-      
-      updateConversationList();
-      updateCurrentConversation();
-      
-      // Clear chat container except for the first assistant message
-      elements.chatContainer.innerHTML = `
-        <div class="message assistant">
-          <div class="avatar">
-            <i class="fas fa-robot"></i>
-          </div>
-          <div class="message-content">
-            <div class="message-header">Buddy AI</div>
-            <div class="message-body">
-              <p>Hello! I'm Buddy, your AI assistant. How can I help you today?</p>
-              <p>I'm currently using the ${state.activeModel} model.</p>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      elements.userInput.focus();
-    }
-
-    function loadConversations() {
-      // In a real app, this would load from localStorage or a database
-      const sampleConversations = [
-        {
-          id: 1,
-          title: 'Website Design Discussion',
-          messages: [],
-          createdAt: new Date(Date.now() - 86400000),
-          updatedAt: new Date(Date.now() - 3600000)
-        },
-        {
-          id: 2,
-          title: 'API Integration',
-          messages: [],
-          createdAt: new Date(Date.now() - 172800000),
-          updatedAt: new Date(Date.now() - 7200000)
-        },
-        {
-          id: 3,
-          title: 'Project Planning',
-          messages: [],
-          createdAt: new Date(Date.now() - 259200000),
-          updatedAt: new Date(Date.now() - 10800000)
-        }
-      ];
-      
-      state.conversations = sampleConversations;
-      updateConversationList();
-    }
-
-    function updateConversationList() {
-      elements.conversationList.innerHTML = '';
-      
-      state.conversations.forEach(conversation => {
-        const isActive = state.currentConversation && state.currentConversation.id === conversation.id;
-        
-        const item = document.createElement('div');
-        item.className = `conversation-item ${isActive ? 'active' : ''}`;
-        item.innerHTML = `
-          <div class="conversation-icon">
-            <i class="fas fa-comment"></i>
-          </div>
-          <div class="conversation-name">${conversation.title}</div>
-          <div class="conversation-actions">
-            <button class="action-btn">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="action-btn">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        `;
-        
-        item.addEventListener('click', () => {
-          state.currentConversation = conversation;
-          updateCurrentConversation();
-          updateConversationList();
-        });
-        
-        elements.conversationList.appendChild(item);
-      });
-    }
-
-    function updateCurrentConversation() {
-      if (state.currentConversation) {
-        elements.currentConversation.textContent = state.currentConversation.title;
-      }
-    }
-
-    // Chat functionality
-    function sendMessage() {
-      const message = elements.userInput.value.trim();
-      if (!message) return;
-      
-      addMessage('user', message);
-      elements.userInput.value = '';
-      elements.userInput.style.height = 'auto';
-      
-      // Simulate AI response
-      setTimeout(() => {
-        simulateAIResponse(message);
-      }, 1000);
-    }
-
-    function addMessage(role, content) {
+    // Add message to chat
+    function addMessage(role, content, header = role === 'user' ? 'You' : 'Buddy AI') {
       const message = document.createElement('div');
-      message.className = `message ${role}`;
-      
+      message.classList.add('message', role);
       message.innerHTML = `
         <div class="avatar">
           <i class="fas fa-${role === 'user' ? 'user' : 'robot'}"></i>
         </div>
         <div class="message-content">
-          <div class="message-header">${role === 'user' ? 'You' : 'Buddy AI'}</div>
-          <div class="message-body">
-            <p>${content}</p>
-          </div>
+          <div class="message-header">${header}</div>
+          <div class="message-body">${content}</div>
         </div>
       `;
-      
-      elements.chatContainer.appendChild(message);
-      message.scrollIntoView({ behavior: 'smooth' });
-      
-      // Add to conversation history
-      if (state.currentConversation) {
-        state.currentConversation.messages.push({ role, content });
-        state.currentConversation.updatedAt = new Date();
-        updateConversationList();
+      chatContainer.appendChild(message);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return message.querySelector('.message-body');
+    }
+
+    // Stream AI response
+    async function streamAIResponse(prompt, model, messageBody) {
+      const response = await puter.ai.chat(prompt, { model, stream: true });
+      let fullText = '';
+      for await (const part of response) {
+        const text = part.text || '';
+        fullText += text;
+        messageBody.innerHTML += text.replace(/\n/g, '<br>');
+        chatContainer.scrollTop = chatContainer.scrollHeight;
       }
+      return fullText;
     }
 
-    function simulateAIResponse(userMessage) {
-      // Show typing indicator
-      const typingIndicator = document.createElement('div');
-      typingIndicator.className = 'message assistant';
-      typingIndicator.innerHTML = `
-        <div class="avatar">
-          <i class="fas fa-robot"></i>
-        </div>
-        <div class="message-content">
-          <div class="message-header">Buddy AI</div>
-          <div class="message-body">
-            <div class="typing-indicator">
-              <div class="typing-dot"></div>
-              <div class="typing-dot"></div>
-              <div class="typing-dot"></div>
-            </div>
-          </div>
-        </div>
-      `;
+    // Send chat message
+    sendBtn.addEventListener('click', async () => {
+      const prompt = textarea.value.trim();
+      if (!prompt) return;
+      addMessage('user', prompt);
+      textarea.value = '';
+      textarea.dispatchEvent(new Event('input'));
+      const messageBody = addMessage('assistant', '');
+      await streamAIResponse(prompt, currentModel, messageBody);
+    });
+
+    // Build project
+    buildBtn.addEventListener('click', async () => {
+      const buildPrompt = textarea.value.trim();
+      if (!buildPrompt) return;
+      addMessage('user', buildPrompt);
+      textarea.value = '';
+      textarea.dispatchEvent(new Event('input'));
+      builderPanel.classList.add('active');
+      await startBuildProcess(buildPrompt);
+    });
+
+    // Start multi-agent build process
+    async function startBuildProcess(userPrompt) {
+      const guiderBody = addMessage('assistant', '', 'Guider AI');
+      await streamAIResponse(`You are the guider AI. Narrate the start of the building process for user request: ${userPrompt}`, agentModels.guider, guiderBody);
+
+      // Coordinator
+      const coordBody = addMessage('assistant', '', 'Coordinator AI (Grok)');
+      const coordPrompt = `You are the coordinator AI. Analyze the user request: '${userPrompt}'. Decide what the problem is and what needs to be built. Plan the steps, including if search is needed, architecture design, and coding. Output in JSON: {"problem": "", "needsSearch": true/false, "plan": ["step1", "step2", ...]}`;
+      const coordResponse = await puter.ai.chat(coordPrompt, { model: agentModels.coordinator });
+      const coordJson = JSON.parse(coordResponse);
+      coordBody.innerHTML = `Problem: ${coordJson.problem}<br>Plan: ${coordJson.plan.join('<br>')}`;
       
-      elements.chatContainer.appendChild(typingIndicator);
-      typingIndicator.scrollIntoView({ behavior: 'smooth' });
-      
-      // Simulate AI processing
-      setTimeout(() => {
-        // Remove typing indicator
-        typingIndicator.remove();
-        
-        // Generate response based on user message
-        let response;
-        if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
-          response = `Hello there! I'm Buddy AI, currently using the ${state.activeModel} model. How can I assist you today?`;
-        } else if (userMessage.toLowerCase().includes('build') || userMessage.toLowerCase().includes('create')) {
-          response = `I can help you build that! Click the hammer button to open the project builder, or describe what you'd like to build and I can generate the code for you.`;
-        } else if (userMessage.toLowerCase().includes('thank')) {
-          response = `You're welcome! Is there anything else I can help you with?`;
-        } else {
-          response = `I understand you're asking about "${userMessage}". As the ${state.activeModel} model, I can provide detailed information about this topic. Would you like me to elaborate?`;
+      // Create project dir
+      const projectName = puter.randName();
+      currentProjectPath = `/projects/${projectName}`;
+      await puter.fs.mkdir('/projects');
+      await puter.fs.mkdir(currentProjectPath);
+      await refreshFileList();
+
+      // Search if needed
+      let searchSummary = '';
+      if (coordJson.needsSearch) {
+        const searchBody = addMessage('assistant', '', 'Search AI (Deepseek)');
+        const searchQueryPrompt = `You are the search AI. For the problem: '${coordJson.problem}', generate 3-5 search queries to gather more data. Output as JSON: {"queries": ["query1", ...]}`;
+        const searchQueriesResp = await puter.ai.chat(searchQueryPrompt, { model: agentModels.search });
+        const searchQueries = JSON.parse(searchQueriesResp).queries;
+
+        let searchResults = '';
+        for (const query of searchQueries) {
+          const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&pretty=1`);
+          const data = await res.json();
+          searchResults += `Query: ${query}\nAbstract: ${data.Abstract || ''}\nTopics: ${data.RelatedTopics.map(t => t.Text).join('\n') || ''}\n\n`;
         }
-        
-        addMessage('assistant', response);
-      }, 1500 + Math.random() * 2000);
-    }
 
-    // Project Builder functionality
-    function initializeProjectBuilder() {
-      // Initialize with basic project structure
-      state.project = {
-        files: [
-          { name: 'index.html', content: '<!DOCTYPE html>\n<html>\n<head>\n  <title>My Project</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>', type: 'file' },
-          { name: 'styles.css', content: 'body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 20px;\n}', type: 'file' },
-          { name: 'script.js', content: 'console.log("Hello from JavaScript!");', type: 'file' },
-          { name: 'assets/', content: null, type: 'folder' }
-        ],
-        currentFile: 'index.html',
-        structure: {
-          'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head>\n  <title>My Project</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>' },
-          'styles.css': { type: 'file', content: 'body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 20px;\n}' },
-          'script.js': { type: 'file', content: 'console.log("Hello from JavaScript!");' },
-          'assets/': { type: 'folder', children: {} }
+        const summarizePrompt = `Summarize these search results for the problem: '${coordJson.problem}'. Results: ${searchResults}. Output a concise summary.`;
+        searchSummary = await puter.ai.chat(summarizePrompt, { model: agentModels.search });
+        searchBody.innerHTML = `Searched for: ${searchQueries.join(', ')}<br>Summary: ${searchSummary}`;
+      }
+
+      // Architecture
+      const archBody = addMessage('assistant', '', 'Architecture AI (Claude)');
+      const archPrompt = `You are the architecture AI. For user need: '${userPrompt}', problem: '${coordJson.problem}', search data: '${searchSummary}'. Design the project architecture: folders to create, files with descriptions, libraries needed. Output as JSON: {"folders": ["folder1", ...], "files": [{"path": "file1.js", "description": "desc"}], "libraries": ["lib1", ...]}`;
+      const archResponse = await puter.ai.chat(archPrompt, { model: agentModels.architecture });
+      const archJson = JSON.parse(archResponse);
+      archBody.innerHTML = `Folders: ${archJson.folders.join(', ')}<br>Files: ${archJson.files.map(f => f.path).join(', ')}<br>Libraries: ${archJson.libraries.join(', ')}`;
+
+      // Create folders and files
+      for (const folder of archJson.folders) {
+        await puter.fs.mkdir(`${currentProjectPath}/${folder}`);
+      }
+      for (const file of archJson.files) {
+        await puter.fs.write(`${currentProjectPath}/${file.path}`, '');
+      }
+      await refreshFileList();
+
+      // Coding
+      for (const file of archJson.files) {
+        const coderBody = addMessage('assistant', '', `Coder AI (GPT) - Generating ${file.path}`);
+        const codePrompt = `You are the coder AI. Write the complete code for file '${file.path}': ${file.description}. In context of project '${userPrompt}', architecture: ${JSON.stringify(archJson)}. Include libraries if needed. Output ONLY the code.`;
+        const codeMessage = coderBody; // To append streamed code
+        codeMessage.innerHTML += '<pre><code>';
+        const response = await puter.ai.chat(codePrompt, { model: agentModels.coder, stream: true });
+        let code = '';
+        for await (const part of response) {
+          const text = part.text || '';
+          code += text;
+          codeMessage.innerHTML = `<pre><code>${code.replace(/\n/g, '<br>')}</code></pre>`;
+          chatContainer.scrollTop = chatContainer.scrollHeight;
         }
-      };
-      
-      updateFileExplorer();
-      loadFileContent(state.project.currentFile);
+        codeMessage.innerHTML = `<pre><code>${code}</code></pre>`;
+        await puter.fs.write(`${currentProjectPath}/${file.path}`, code);
+        await refreshFileList();
+      }
+
+      // Guider final
+      const finalGuiderBody = addMessage('assistant', '', 'Guider AI');
+      await streamAIResponse(`You are the guider AI. The project for '${userPrompt}' is built. Guide the user on how to preview, edit, and run it.`, agentModels.guider, finalGuiderBody);
+
+      // Auto preview
+      await previewProject();
     }
 
-    function updateFileExplorer() {
-      elements.fileList.innerHTML = '';
-      
-      state.project.files.forEach(file => {
-        const item = document.createElement('div');
-        item.className = `file-item ${file.name === state.project.currentFile ? 'active' : ''}`;
-        item.innerHTML = `
-          <i class="fas fa-${file.type === 'folder' ? 'folder' : 'file-code'}"></i>
-          <span>${file.name}</span>
+    // Refresh file list
+    async function refreshFileList() {
+      fileList.innerHTML = '';
+      const items = await puter.fs.readdir(currentProjectPath);
+      items.forEach(item => {
+        const fileItem = document.createElement('div');
+        fileItem.classList.add('file-item');
+        fileItem.innerHTML = `
+          <i class="fas fa-${item.is_dir ? 'folder' : 'file-code'}"></i>
+          <span>${item.name}</span>
         `;
-        
-        item.addEventListener('click', () => {
-          if (file.type === 'file') {
-            state.project.currentFile = file.name;
-            loadFileContent(file.name);
-            updateFileExplorer();
+        fileItem.addEventListener('click', async () => {
+          document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+          fileItem.classList.add('active');
+          if (!item.is_dir) {
+            currentFilePath = item.path;
+            const blob = await puter.fs.read(currentFilePath);
+            const text = await blob.text();
+            codeEditor.value = text;
           }
         });
-        
-        elements.fileList.appendChild(item);
+        fileList.appendChild(fileItem);
       });
     }
 
-    function loadFileContent(filename) {
-      const file = state.project.files.find(f => f.name === filename);
-      if (file) {
-        elements.codeEditor.value = file.content || '';
+    // Save file
+    saveBtn.addEventListener('click', async () => {
+      if (currentFilePath) {
+        await puter.fs.write(currentFilePath, codeEditor.value);
+        alert('File saved!');
       }
+    });
+
+    // Run/Preview project
+    runBtn.addEventListener('click', previewProject);
+
+    async function previewProject() {
+      const hosting = await puter.hosting.create(null, currentProjectPath);
+      currentHostingUrl = hosting.url;
+      previewFrame.src = currentHostingUrl;
+      // Switch to preview tab
+      editorTabs[1].click();
     }
 
-    function addFileToProject(name, content = '', isFolder = false) {
-      const type = isFolder ? 'folder' : 'file';
-      const newFile = { name, content, type };
-      
-      state.project.files.push(newFile);
-      
-      // Update the project structure
-      if (isFolder) {
-        state.project.structure[name] = { type: 'folder', children: {} };
-      } else {
-        state.project.structure[name] = { type: 'file', content };
+    // New file
+    newFileBtn.addEventListener('click', async () => {
+      const name = prompt('New file name:');
+      if (name) {
+        await puter.fs.write(`${currentProjectPath}/${name}`, '');
+        await refreshFileList();
       }
-      
-      updateFileExplorer();
-    }
+    });
 
-    function saveCurrentFile() {
-      const currentFile = state.project.files.find(f => f.name === state.project.currentFile);
-      if (currentFile) {
-        currentFile.content = elements.codeEditor.value;
-        state.project.structure[currentFile.name].content = elements.codeEditor.value;
-        showToast('File saved successfully');
+    // New folder
+    newFolderBtn.addEventListener('click', async () => {
+      const name = prompt('New folder name:');
+      if (name) {
+        await puter.fs.mkdir(`${currentProjectPath}/${name}`);
+        await refreshFileList();
       }
-    }
+    });
 
-    function runProject() {
-      updatePreview();
-      document.querySelector('.editor-tab[data-tab="preview"]').click();
-    }
-
-    function updatePreview() {
-      const htmlFile = state.project.files.find(f => f.name === 'index.html');
-      if (htmlFile) {
-        const blob = new Blob([htmlFile.content], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        elements.previewFrame.src = url;
-      }
-    }
-
-    function showToast(message) {
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.remove();
-      }, 3000);
-    }
-
-    // AI Orchestration
-    function startAIOrchestration(prompt) {
-      // Reset progress
-      updateAIStatus('problemSolver', true);
-      elements.progressBar.style.width = '20%';
-      
-      // Simulate AI collaboration
-      setTimeout(() => {
-        updateAIStatus('problemSolver', false);
-        updateAIStatus('researcher', true);
-        elements.progressBar.style.width = '40%';
-        
-        setTimeout(() => {
-          updateAIStatus('researcher', false);
-          updateAIStatus('architect', true);
-          elements.progressBar.style.width = '60%';
-          
-          setTimeout(() => {
-            updateAIStatus('architect', false);
-            updateAIStatus('coder', true);
-            elements.progressBar.style.width = '80%';
-            
-            setTimeout(() => {
-              updateAIStatus('coder', false);
-              updateAIStatus('guide', true);
-              elements.progressBar.style.width = '100%';
-              
-              setTimeout(() => {
-                updateAIStatus('guide', false);
-                elements.progressBar.style.width = '0';
-                
-                // Show the completed project
-                addMessage('assistant', 'I\'ve completed building your project! Click the hammer button to view and edit it.');
-                elements.buildBtn.click();
-              }, 1000);
-            }, 1500);
-          }, 1500);
-        }, 1500);
-      }, 1500);
-    }
-
-    function updateAIStatus(model, isActive) {
-      state.aiStatus[model] = isActive;
-      const element = elements[`${model}Model`];
-      
-      if (isActive) {
-        element.classList.add('active');
-      } else {
-        element.classList.remove('active');
-      }
-    }
-
-    // Initialize the app
-    init();
+    // Initial welcome message
+    addMessage('assistant', `<p>Hello! I'm Buddy, your AI assistant. How can I help you today?</p><p>Here are some things I can do:</p><ul><li>Answer your questions</li><li>Help with coding problems</li><li>Generate content</li><li>Build complete web applications</li></ul>`, 'Buddy AI');
   </script>
 </body>
 </html>
