@@ -9,6 +9,8 @@
       :root {
         --bg: #0b0d10;
         --panel: #12151a;
+        --user-bubble: #111824;
+        --buddy-bubble: #0f1a13;
         --muted: #9aa4b2;
         --text: #e8eef5;
         --accent: #6aa6ff;
@@ -117,8 +119,8 @@
         padding: 14px;
         line-height: 1.5;
       }
-      .user { border-left: 3px solid var(--accent); }
-      .assistant { border-left: 3px solid var(--ok); }
+      .bubble.user { border-left: 3px solid var(--accent); background: var(--user-bubble); }
+      .bubble.assistant { border-left: 3px solid var(--ok); background: var(--buddy-bubble); }
       .providers {
         display: grid;
         gap: 10px;
@@ -249,7 +251,7 @@
         <div class="attach">
           <label class="icon-btn" title="Attach (image or text)"><input id="attachInput" type="file" accept="image/*,.txt,.md,.json,application/json,text/plain"><span>📎</span></label>
         </div>
-        <textarea id="query" placeholder="Ask anything... (Shift+Enter for newline)"></textarea>
+        <textarea id="query" placeholder="Ask anything..."></textarea>
         <button class="send" id="sendBtn" aria-label="Send">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 11L21 3L13 21L11 13L3 11Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -338,9 +340,7 @@
           ...historyArr.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6),
           { role: 'user', content: prompt },
         ];
-        if (summarizer === 'deepseek') return askDeepseek(msgs);
-        if (summarizer === 'grok') return askGrok(msgs);
-        return askChatGPT(msgs);
+        return askModel(msgs, summarizer);
       }
 
       // Full model list based on Puter examples (use as ensemble)
@@ -416,9 +416,10 @@
 
       function renderMessage(role, content, index) {
         const div = document.createElement('div');
+        const label = role === 'assistant' ? 'Buddy' : role.toUpperCase();
         div.className = `bubble ${role}`;
         const safe = escapeHtml(content);
-        div.innerHTML = `<div class="small muted">${role.toUpperCase()}</div><div class="body">${safe}</div>`;
+        div.innerHTML = `<div class="small muted">${label}</div><div class="body">${safe}</div>`;
         const buttons = [];
         if (role === 'user') {
           buttons.push({ label: 'Copy', onClick: () => navigator.clipboard.writeText(content) });
