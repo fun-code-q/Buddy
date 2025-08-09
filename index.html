@@ -217,7 +217,12 @@
     .send.stop { background: linear-gradient(135deg, var(--err), #cc5555); }
     .preview-frame { width: 100%; height: 420px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
     .spacer { height: 120px; }
-    @media (max-width: 640px) { .composer-inner { grid-template-columns: 1fr auto; } .attach { grid-column: 1/-1; } }
+    @media (max-width: 640px) {
+      .composer-inner { grid-template-columns: auto 1fr auto; }
+      .attach { grid-column: auto; }
+      .brand { font-size: 16px; }
+      .topbar-note { white-space: normal; font-size: 11px; }
+    }
   </style>
   <style>
     .composer textarea {
@@ -235,6 +240,8 @@
     .dot.done { background: #3ad29f; }
     .dot.error { background: #ff6b6b; }
     .hidden { display: none; }
+    /* Hide topbar thinking UI; inline thinking is used instead */
+    #btnThinking, #thinkingPanel { display: none !important; }
     .preview-container {
       position: relative;
     }
@@ -270,10 +277,10 @@
       <div class="brand">Buddy AI</div>
     </div>
     <div class="topbar-center">
-      <div class="topbar-note small muted">No login. No limits. Refresh clears the conversation.</div>
+      <div class="topbar-note small muted">No login. Refresh clears everything.</div>
     </div>
     <div class="topbar-right">
-      <button id="btnThinking" class="icon hidden" title="Show thinking">💭</button>
+      
     </div>
   </div>
   <div id="thinkingPanel" class="dropdown hidden">
@@ -617,12 +624,22 @@
       const label = role === 'assistant' ? 'Buddy' : role.toUpperCase();
       div.className = `bubble ${role}`;
       
-      const formattedContent = content.replace(
-        /```(\w+)?\n([\s\S]*?)```/g, 
-        (match, lang, code) => {
-          return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
-        }
-      );
+      // Preserve markdown-like structure: bold, italic, underline, line breaks
+      let formattedContent = content
+        // code blocks
+        .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => `<pre><code class="language-${(lang||'')}">${escapeHtml(code)}</code></pre>`)
+        // inline code
+        .replace(/`([^`]+)`/g, (m, c) => `<code>${escapeHtml(c)}</code>`)
+        // underline: __text__
+        .replace(/__([^_]+)__/g, '<u>$1</u>')
+        // bold: **text**
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        // italics: *text*
+        .replace(/(^|\s)\*([^*]+)\*(?=\s|$)/g, '$1<em>$2</em>')
+        // newlines to paragraphs
+        .replace(/\n\n+/g, '</p><p>')
+        .replace(/\n/g, '<br/>');
+      formattedContent = `<p>${formattedContent}</p>`;
       
       div.innerHTML = `<div class="small muted">${label}</div><div class="body">${formattedContent}</div>`;
 
@@ -673,22 +690,9 @@
     }
 
     function renderProviders(outputs) {
+      // Suppress provider outputs globally to focus on combined reply.
       providersEl.innerHTML = '';
-      const entries = Object.entries(outputs).filter(([k]) => k !== 'combined');
-      if (!entries.length) {
-        providersEl.style.display = 'none';
-        return;
-      }
-      providersEl.style.display = 'grid';
-      for (const [key, value] of entries) {
-        const card = document.createElement('div');
-        card.className = 'provider-card';
-        card.innerHTML = `
-          <div class="provider-title">${escapeHtml(key)}</div>
-          <div>${escapeHtml(String(value || ''))}</div>
-        `;
-        providersEl.appendChild(card);
-      }
+      providersEl.style.display = 'none';
     }
 
     function renderCombined(text) {
