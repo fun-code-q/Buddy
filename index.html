@@ -6,6 +6,7 @@
   <title>Buddy AI</title>
   <script src="https://js.puter.com/v2/"></script>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="https://static.vecteezy.com/system/resources/thumbnails/068/082/380/small/artificial-intelligence-design-png.png" type="image/png">
   <style>
     :root {
       --bg: #0b0d10;
@@ -356,9 +357,9 @@
 
     function escapeHtml(str) {
       return str
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     }
 
     function buildMessages(historyArr, userQuery) {
@@ -526,7 +527,10 @@
       iframe.className = 'preview-frame';
       chatEl.appendChild(wrap);
       wrap.appendChild(iframe);
-      const doc = iframe.contentWindow.document; doc.open(); doc.write(html); doc.close();
+      const doc = iframe.contentWindow.document; 
+      doc.open(); 
+      doc.write(html); 
+      doc.close();
       wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
@@ -542,7 +546,7 @@
         }
       );
       
-      div.innerHTML = `<div class="small muted">${label}</div><div class="body">${escapeHtml(formattedContent)}</div>`;
+      div.innerHTML = `<div class="small muted">${label}</div><div class="body">${formattedContent}</div>`;
       
       const buttons = [];
       if (role === 'user') {
@@ -580,9 +584,15 @@
     }
 
     function setSidebarOpen(open) {
-      if (open) { sidebar.classList.add('open'); backdrop.classList.add('show'); }
-      else { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+      if (open) { 
+        sidebar.classList.add('open'); 
+        backdrop.classList.add('show'); 
+      } else { 
+        sidebar.classList.remove('open'); 
+        backdrop.classList.remove('show'); 
+      }
     }
+    
     toggleSidebarBtn.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
     closeSidebarBtn.addEventListener('click', () => setSidebarOpen(false));
     backdrop.addEventListener('click', () => setSidebarOpen(false));
@@ -597,21 +607,44 @@
     sendBtn.addEventListener('click', send);
 
     attachInput.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0]; if (!file) return;
+      const file = e.target.files?.[0]; 
+      if (!file) return;
+      
       if (file.type.startsWith('image/')) {
-        const dataUrl = await fileToDataURL(file);
-        pendingImage = dataUrl;
-        const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `Image: ${file.name}`; attachmentsEl.appendChild(chip);
+        try {
+          const dataUrl = await fileToDataURL(file);
+          pendingImage = dataUrl;
+          const chip = document.createElement('div'); 
+          chip.className='chip'; 
+          chip.textContent = `Image: ${file.name}`; 
+          attachmentsEl.appendChild(chip);
+        } catch (e) {
+          console.error("Error processing image:", e);
+        }
       } else if (file.type.startsWith('text') || /\.(md|json|txt)$/i.test(file.name)) {
-        pendingTextFile = await file.text();
-        const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `File: ${file.name}`; attachmentsEl.appendChild(chip);
+        try {
+          pendingTextFile = await file.text();
+          const chip = document.createElement('div'); 
+          chip.className='chip'; 
+          chip.textContent = `File: ${file.name}`; 
+          attachmentsEl.appendChild(chip);
+        } catch (e) {
+          console.error("Error reading text file:", e);
+        }
       } else {
         alert('Only images or text/md/json files supported');
       }
       e.target.value = '';
     });
 
-    function fileToDataURL(file) { return new Promise((resolve)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.readAsDataURL(file); }); }
+    function fileToDataURL(file) { 
+      return new Promise((resolve, reject) => { 
+        const r = new FileReader(); 
+        r.onload = () => resolve(r.result); 
+        r.onerror = reject; 
+        r.readAsDataURL(file); 
+      }); 
+    }
 
     async function send() {
       const q = queryEl.value.trim();
@@ -666,37 +699,64 @@
     let activeEditIndex = null;
     function editPrompt(index) {
       if (activeEditIndex !== null) return;
-      const original = history[index]; if (!original || original.role !== 'user') return;
+      const original = history[index]; 
+      if (!original || original.role !== 'user') return;
+      
       activeEditIndex = index;
       const bubbles = [...chatEl.children];
       const bubble = bubbles[index];
       if (!bubble) return;
+      
       const body = bubble.querySelector('.body');
       const originalText = original.content;
       body.innerHTML = '';
+      
       const ta = document.createElement('textarea');
-      ta.style.width = '100%'; ta.style.minHeight = '120px'; ta.style.maxHeight = 'none'; ta.value = originalText;
-      const bar = document.createElement('div'); bar.className = 'toolbar';
-      const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = 'Save';
-      const cancelBtn = document.createElement('button'); cancelBtn.className = 'btn'; cancelBtn.textContent = 'Cancel';
-      bar.appendChild(saveBtn); bar.appendChild(cancelBtn);
-      body.appendChild(ta); body.appendChild(bar);
+      ta.style.width = '100%'; 
+      ta.style.minHeight = '120px'; 
+      ta.style.maxHeight = 'none'; 
+      ta.value = originalText;
+      
+      const bar = document.createElement('div'); 
+      bar.className = 'toolbar';
+      
+      const saveBtn = document.createElement('button'); 
+      saveBtn.className = 'btn'; 
+      saveBtn.textContent = 'Save';
+      
+      const cancelBtn = document.createElement('button'); 
+      cancelBtn.className = 'btn'; 
+      cancelBtn.textContent = 'Cancel';
+      
+      bar.appendChild(saveBtn); 
+      bar.appendChild(cancelBtn);
+      body.appendChild(ta); 
+      body.appendChild(bar);
+      
       saveBtn.onclick = () => saveEdit(index, ta.value);
       cancelBtn.onclick = () => cancelEdit(index, originalText);
     }
+
     function cancelEdit(index, originalText) {
       activeEditIndex = null;
       const bubbles = [...chatEl.children];
-      const bubble = bubbles[index]; if (!bubble) return;
+      const bubble = bubbles[index]; 
+      if (!bubble) return;
+      
       const body = bubble.querySelector('.body');
       body.textContent = originalText;
     }
+
     function saveEdit(index, newText) {
       activeEditIndex = null;
       history[index].content = newText;
       while (history.length > index + 1) history.pop();
+      
       chatEl.innerHTML = '';
-      for (let i=0;i<=index;i++) renderMessage(history[i].role, history[i].content, i);
+      for (let i=0;i<=index;i++) {
+        renderMessage(history[i].role, history[i].content, i);
+      }
+      
       (async () => {
         sendBtn.disabled = true;
         try {
@@ -706,7 +766,11 @@
           const aiIndex = history.length;
           history.push({ role: 'assistant', content: assistantContent });
           renderMessage('assistant', assistantContent, aiIndex);
-        } finally { sendBtn.disabled = false; }
+        } catch (e) {
+          console.error("Error after edit:", e);
+        } finally { 
+          sendBtn.disabled = false; 
+        }
       })();
     }
 
@@ -714,61 +778,90 @@
       if (!history[index] || history[index].role !== 'user') return;
       history.splice(index);
       chatEl.innerHTML = '';
-      for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
+      for (let i=0;i<history.length;i++) {
+        renderMessage(history[i].role, history[i].content, i);
+      }
     }
 
     function saveState() {
-      const state = { conversations, activeConversationId, selectedModels: Array.from(selectedModels || []) };
+      const state = { 
+        conversations, 
+        activeConversationId, 
+        selectedModels: Array.from(selectedModels || []) 
+      };
       localStorage.setItem('buddy_state', JSON.stringify(state));
     }
+
     function loadState() {
       try {
         const raw = localStorage.getItem('buddy_state');
-        if (!raw) throw new Error('no');
+        if (!raw) throw new Error('no saved state');
         const st = JSON.parse(raw);
         conversations = Array.isArray(st.conversations) ? st.conversations : [];
         activeConversationId = st.activeConversationId || null;
-        selectedModels = new Set(Array.isArray(st.selectedModels) && st.selectedModels.length ? st.selectedModels : ALL_MODELS);
+        selectedModels = new Set(
+          Array.isArray(st.selectedModels) && st.selectedModels.length ? 
+          st.selectedModels : 
+          ALL_MODELS
+        );
       } catch {
         conversations = [];
         activeConversationId = null;
         selectedModels = new Set(ALL_MODELS);
       }
     }
+
     function ensureDefaultConversation() {
       if (!conversations.length) {
-        const conv = { id: String(Date.now()), name: 'New Chat', history: [] };
+        const conv = { 
+          id: String(Date.now()), 
+          name: 'New Chat', 
+          history: [] 
+        };
         conversations.push(conv);
         activeConversationId = conv.id;
       }
     }
+
     function setActiveConversation(id) {
       activeConversationId = id;
       const conv = conversations.find(c => c.id === id);
       history = conv.history;
       chatEl.innerHTML = '';
-      for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
+      for (let i=0;i<history.length;i++) {
+        renderMessage(history[i].role, history[i].content, i);
+      }
       saveState();
       renderConversationList();
     }
+
     function newChat() {
-      const conv = { id: String(Date.now()), name: 'New Chat', history: [] };
+      const conv = { 
+        id: String(Date.now()), 
+        name: 'New Chat', 
+        history: [] 
+      };
       conversations.unshift(conv);
       setActiveConversation(conv.id);
     }
+
     function renameConversation(id, newName) {
-      const c = conversations.find(x => x.id === id); if (!c) return;
+      const c = conversations.find(x => x.id === id); 
+      if (!c) return;
       c.name = newName || 'Untitled';
       saveState();
       renderConversationList();
     }
+
     function deleteConversation(id) {
       const idx = conversations.findIndex(x => x.id === id);
       if (idx === -1) return;
+      
       conversations.splice(idx,1);
       if (!conversations.length) {
         ensureDefaultConversation();
       }
+      
       if (activeConversationId === id) {
         setActiveConversation(conversations[0].id);
       } else {
@@ -776,31 +869,77 @@
         renderConversationList();
       }
     }
+
     async function exportConversationPdf(id) {
-      const c = conversations.find(x => x.id === id); if (!c) return;
+      const c = conversations.find(x => x.id === id); 
+      if (!c) return;
+      
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
       let y = 36;
       const lineHeight = 16;
-      doc.setFont('helvetica',''); doc.setFontSize(12);
-      doc.text(`Conversation: ${c.name}`, 36, y); y += 24;
+      
+      doc.setFont('helvetica',''); 
+      doc.setFontSize(12);
+      doc.text(`Conversation: ${c.name}`, 36, y); 
+      y += 24;
+      
       for (const m of c.history) {
-        doc.setFont(undefined,'bold'); doc.text(m.role.toUpperCase()+':', 36, y); y += lineHeight; doc.setFont(undefined,'normal');
+        doc.setFont(undefined,'bold'); 
+        doc.text(m.role.toUpperCase()+':', 36, y); 
+        y += lineHeight; 
+        doc.setFont(undefined,'normal');
+        
         const text = (m.content || '').replace(/\r/g,'');
         const lines = doc.splitTextToSize(text, pageWidth-72);
-        for (const ln of lines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
-        if (Array.isArray(m.images)) {
-          for (const img of m.images) { if (y > 700) { doc.addPage(); y = 36; } try { doc.addImage(img, 'PNG', 36, y, pageWidth-72, (pageWidth-72)*0.56); y += 12 + (pageWidth-72)*0.56; } catch {} }
+        
+        for (const ln of lines) { 
+          if (y > 780) { 
+            doc.addPage(); 
+            y = 36; 
+          } 
+          doc.text(ln, 36, y); 
+          y += lineHeight; 
         }
+        
+        if (Array.isArray(m.images)) {
+          for (const img of m.images) { 
+            if (y > 700) { 
+              doc.addPage(); 
+              y = 36; 
+            } 
+            try { 
+              doc.addImage(img, 'PNG', 36, y, pageWidth-72, (pageWidth-72)*0.56); 
+              y += 12 + (pageWidth-72)*0.56; 
+            } catch (e) {
+              console.error("Error adding image:", e);
+            } 
+          }
+        }
+        
         if (Array.isArray(m.files)) {
           for (const f of m.files) {
             const label = f.type && f.type.startsWith('text') ? `File (${f.name}):` : `Attachment: ${f.name}`;
-            if (y > 780) { doc.addPage(); y = 36; }
-            doc.setFont(undefined,'bold'); doc.text(label, 36, y); y += lineHeight; doc.setFont(undefined,'normal');
+            if (y > 780) { 
+              doc.addPage(); 
+              y = 36; 
+            }
+            doc.setFont(undefined,'bold'); 
+            doc.text(label, 36, y); 
+            y += lineHeight; 
+            doc.setFont(undefined,'normal');
+            
             if (f.content && typeof f.content === 'string') {
               const flines = doc.splitTextToSize(f.content.slice(0,5000), pageWidth-72);
-              for (const ln of flines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
+              for (const ln of flines) { 
+                if (y > 780) { 
+                  doc.addPage(); 
+                  y = 36; 
+                } 
+                doc.text(ln, 36, y); 
+                y += lineHeight; 
+              }
             }
           }
         }
@@ -808,41 +947,94 @@
       }
       doc.save(`${c.name.replace(/[^a-z0-9\-_]+/gi,'_')}.pdf`);
     }
+
     function renderConversationList() {
       convList.innerHTML = '';
       for (const c of conversations) {
-        const row = document.createElement('div'); row.className='conv-item';
-        const input = document.createElement('input'); input.className='conv-name'; input.value = c.name; input.title='Click to edit name';
+        const row = document.createElement('div'); 
+        row.className='conv-item';
+        
+        const input = document.createElement('input'); 
+        input.className='conv-name'; 
+        input.value = c.name; 
+        input.title='Click to edit name';
         input.onchange = () => renameConversation(c.id, input.value);
-        input.onclick = (e) => { if (activeConversationId !== c.id) setActiveConversation(c.id); };
-        const del = document.createElement('button'); del.className='icon'; del.textContent='🗑️'; del.title='Delete'; del.onclick = () => deleteConversation(c.id);
-        const exp = document.createElement('button'); exp.className='icon'; exp.textContent='⬇️'; exp.title='Export PDF'; exp.onclick = () => exportConversationPdf(c.id);
-        row.appendChild(input); row.appendChild(exp); row.appendChild(del);
-        if (activeConversationId === c.id) row.style.borderColor = 'var(--accent)';
+        input.onclick = (e) => { 
+          if (activeConversationId !== c.id) setActiveConversation(c.id); 
+        };
+        
+        const del = document.createElement('button'); 
+        del.className='icon'; 
+        del.textContent='🗑️'; 
+        del.title='Delete'; 
+        del.onclick = () => deleteConversation(c.id);
+        
+        const exp = document.createElement('button'); 
+        exp.className='icon'; 
+        exp.textContent='⬇️'; 
+        exp.title='Export PDF'; 
+        exp.onclick = () => exportConversationPdf(c.id);
+        
+        row.appendChild(input); 
+        row.appendChild(exp); 
+        row.appendChild(del);
+        
+        if (activeConversationId === c.id) {
+          row.style.borderColor = 'var(--accent)';
+        }
+        
         convList.appendChild(row);
       }
     }
+
     function renderModelList() {
       modelList.innerHTML = '';
       for (const mid of ALL_MODELS) {
-        const row = document.createElement('label'); row.className='model-row';
-        const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = (selectedModels||new Set(ALL_MODELS)).has(mid);
-        cb.onchange = () => { if (!selectedModels) selectedModels = new Set(ALL_MODELS); if (cb.checked) selectedModels.add(mid); else selectedModels.delete(mid); saveState(); };
-        const span = document.createElement('span'); span.textContent = mid;
-        row.appendChild(cb); row.appendChild(span);
+        const row = document.createElement('label'); 
+        row.className='model-row';
+        
+        const cb = document.createElement('input'); 
+        cb.type='checkbox'; 
+        cb.checked = (selectedModels||new Set(ALL_MODELS)).has(mid);
+        cb.onchange = () => { 
+          if (!selectedModels) selectedModels = new Set(ALL_MODELS); 
+          if (cb.checked) selectedModels.add(mid); 
+          else selectedModels.delete(mid); 
+          saveState(); 
+        };
+        
+        const span = document.createElement('span'); 
+        span.textContent = mid;
+        
+        row.appendChild(cb); 
+        row.appendChild(span);
         modelList.appendChild(row);
       }
     }
+
     btnNewChat.addEventListener('click', newChat);
+    
     btnThinking.addEventListener('click', () => {
       const open = thinkingPanel.classList.contains('hidden');
-      if (open) { thinkingPanel.classList.remove('hidden'); }
-      else { thinkingPanel.classList.add('hidden'); if (thinkingList.querySelector('.dot.pending')) { /* keep button */ } else { btnThinking.classList.add('hidden'); } }
+      if (open) { 
+        thinkingPanel.classList.remove('hidden'); 
+      } else { 
+        thinkingPanel.classList.add('hidden'); 
+        if (!thinkingList.querySelector('.dot.pending')) { 
+          btnThinking.classList.add('hidden'); 
+        } 
+      }
     });
+    
     modelsToggle.addEventListener('click', () => {
       const closed = modelList.classList.contains('hidden');
-      if (closed) { modelList.classList.remove('hidden'); modelsToggle.textContent = '▼'; }
-      else { modelList.classList.add('hidden'); modelsToggle.textContent = '▶'; }
+      if (closed) { 
+        modelList.classList.remove('hidden'); 
+        modelsToggle.textContent = '▼'; 
+      } else { 
+        modelList.classList.add('hidden'); 
+        modelsToggle.textContent = '▶'; 
+      }
     });
 
     // Initialize the app
