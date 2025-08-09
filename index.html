@@ -623,7 +623,7 @@
 
     function renderMessage(role, content, index) {
       const div = document.createElement('div');
-      const label = role === 'assistant' ? 'Buddy' : role.toUpperCase();
+      const label = role === 'assistant' ? (history[index]?.meta?.label || 'Buddy') : role.toUpperCase();
       div.className = `bubble ${role}`;
       
       // Preserve markdown-like structure: bold, italic, underline, line breaks
@@ -648,17 +648,20 @@
       // Inline thinking toggle under the latest user bubble
       if (role === 'user' && index === history.length - 1) {
         const thinkToggle = document.createElement('button');
+        thinkToggle.id = `think-toggle-${index}`;
         thinkToggle.className = 'thinking-toggle';
-        thinkToggle.textContent = 'Thinking…';
+        thinkToggle.textContent = 'Thinking ▸ 0s';
         const thinkPanel = document.createElement('div');
+        thinkPanel.id = `think-panel-${index}`;
         thinkPanel.className = 'thinking-panel-inline hidden';
-        // Mirror the global thinking list entries
-        const mirror = document.createElement('div');
-        mirror.id = `thinking-inline-${index}`;
-        thinkPanel.appendChild(mirror);
+        const contentWrap = document.createElement('div');
+        contentWrap.id = `think-content-${index}`;
+        thinkPanel.appendChild(contentWrap);
         thinkToggle.onclick = () => {
+          const isHidden = thinkPanel.classList.contains('hidden');
           thinkPanel.classList.toggle('hidden');
-          syncInlineThinking(mirror);
+          thinkToggle.textContent = updateThinkingToggleText(index, !isHidden);
+          renderInlineThinking(index);
         };
         div.appendChild(thinkToggle);
         div.appendChild(thinkPanel);
@@ -679,16 +682,60 @@
       div.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
-    function syncInlineThinking(container) {
-      if (!container) return;
-      container.innerHTML = '';
-      const rows = [...thinkingList.children];
-      for (const r of rows) {
-        const copy = r.cloneNode(true);
-        copy.classList.add('thinking-row');
-        // style italics via CSS class already
-        container.appendChild(copy);
+    // Per-turn metadata for thinking view and labels
+    const runMeta = new Map(); // key: userIndex -> { startMs, endMs, models: string[], results: Record<string,string>, combined: string }
+
+    function secondsBetween(startMs, endMs) {
+      if (!startMs) return 0;
+      const end = endMs || Date.now();
+      return Math.max(0, Math.round((end - startMs) / 1000));
+    }
+
+    function updateThinkingToggleText(index, isOpen) {
+      const meta = runMeta.get(index);
+      const secs = secondsBetween(meta?.startMs, meta?.endMs);
+      const caret = isOpen ? '▾' : '▸';
+      return `Thinking ${caret} ${secs}s`;
+    }
+
+    function renderInlineThinking(index) {
+      const panel = document.getElementById(`think-content-${index}`);
+      if (!panel) return;
+      panel.innerHTML = '';
+      const meta = runMeta.get(index);
+      if (!meta) {
+        // Fallback to live statuses
+        const rows = [...thinkingList.children];
+        for (const r of rows) {
+          const copy = r.cloneNode(true);
+          copy.classList.add('thinking-row');
+          panel.appendChild(copy);
+        }
+        return;
       }
+      // Models used header
+      const header = document.createElement('div');
+      header.className = 'small muted';
+      header.innerHTML = `Models used: <em>${(meta.models||[]).join(', ') || 'default'}</em>`;
+      panel.appendChild(header);
+      // Each model thought
+      for (const m of meta.models || []) {
+        const wrap = document.createElement('div');
+        wrap.className = 'thinking-row';
+        const title = document.createElement('div');
+        title.innerHTML = `<strong>${m}</strong>`;
+        const body = document.createElement('div');
+        const text = String((meta.results && meta.results[m]) || '').slice(0, 1200);
+        body.innerHTML = `<em>${escapeHtml(text || 'thinking…')}</em>`;
+        wrap.appendChild(title);
+        wrap.appendChild(body);
+        panel.appendChild(wrap);
+      }
+      // How Buddy combined
+      const combine = document.createElement('div');
+      combine.className = 'thinking-row';
+      combine.innerHTML = `<div><strong>Buddy combine</strong></div><div><em>Merged overlapping points, resolved conflicts, and structured the final answer.</em></div>`;
+      panel.appendChild(combine);
     }
 
     function renderProviders(outputs) {
@@ -697,14 +744,10 @@
       providersEl.style.display = 'none';
     }
 
-    function renderCombined(text) {
-      const show = Boolean(text && String(text).trim());
-      combinedEl.style.display = show ? 'block' : 'none';
-      if (show) {
-        combinedEl.innerHTML = `<div class="small muted">Combined Answer</div><div>${escapeHtml(String(text))}</div>`;
-      } else {
-        combinedEl.innerHTML = '';
-      }
+    function renderCombined(_text) {
+      // Suppressed: combined answer is shown only as the Buddy reply bubble
+      combinedEl.style.display = 'none';
+      combinedEl.innerHTML = '';
     }
 
     function setSidebarOpen(open) {
@@ -836,6 +879,8 @@
       if (pendingTextFile) msg.files = [{ name: 'attachment.txt', type: 'text/plain', content: pendingTextFile.slice(0, 20000) }];
       
       history.push(msg);
+      // track run meta for this user turn
+      runMeta.set(userIndex, { startMs: Date.now(), models: null, results: null, combined: null });
       renderMessage('user', enriched, userIndex);
       attachmentsEl.innerHTML = '';
       pendingImage = null;
@@ -847,6 +892,10 @@
         const baseList = supportedModels.size ? Array.from(supportedModels) : [];
         const modelsToUse = Array.from(selectedModels || new Set(baseList)).filter(m => !supportedModels.size || supportedModels.has(m));
         const summarizerModel = (supportedModels.has('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || null));
+        const startMs = Date.now();
+        // store which models are used for thinking view
+        const meta = runMeta.get(userIndex) || {};
+        meta.models = modelsToUse.slice();
         const result = await runParallel(modelsToUse, history, enriched, summarizerModel);
         renderProviders(result);
         renderCombined(result.combined);
@@ -866,7 +915,12 @@
           }
         }
         const aiIndex = history.length;
-        history.push({ role: 'assistant', content: assistantContent });
+        const label = (modelsToUse && modelsToUse.length > 1) ? 'Buddy - Combined' : 'Buddy';
+        meta.results = Object.fromEntries(Object.entries(result).filter(([k]) => k !== 'combined'));
+        meta.combined = assistantContent;
+        meta.endMs = Date.now();
+        runMeta.set(userIndex, meta);
+        history.push({ role: 'assistant', content: assistantContent, meta: { label } });
         renderMessage('assistant', assistantContent, aiIndex);
       } catch (e) {
         console.error("Send error:", e);
@@ -948,6 +1002,7 @@
           const baseList = supportedModels.size ? Array.from(supportedModels) : [];
           const modelsToUse = Array.from(selectedModels || new Set(baseList)).filter(m => !supportedModels.size || supportedModels.has(m));
           const summarizerModel = (supportedModels.has('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || null));
+          const startMs = Date.now();
           const result = await runParallel(modelsToUse, history, newText, summarizerModel);
           renderProviders(result);
           renderCombined(result.combined);
@@ -967,7 +1022,11 @@
             }
           }
           const aiIndex = history.length;
-          history.push({ role: 'assistant', content: assistantContent });
+          const label = (modelsToUse && modelsToUse.length > 1) ? 'Buddy - Combined' : 'Buddy';
+          const meta = runMeta.get(index) || {};
+          meta.endMs = Date.now();
+          runMeta.set(index, meta);
+          history.push({ role: 'assistant', content: assistantContent, meta: { label } });
           renderMessage('assistant', assistantContent, aiIndex);
         } catch (e) {
           console.error("Error after edit:", e);
@@ -1259,5 +1318,3 @@
   </script>
 </body>
 </html>
-
-
