@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Buddy AI — Project Builder</title>
-
-  <!-- Puter.js -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buddy AI</title>
   <script src="https://js.puter.com/v2/"></script>
-
-  <!-- Font Awesome (icons) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
   <style>
-    /* (Your existing CSS from the original file) */
     :root {
       --bg-primary: #0f1117;
       --bg-secondary: #161b22;
@@ -29,60 +23,682 @@
       --sidebar-width: 280px;
       --radius: 12px;
     }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg-primary);color:var(--text-primary);display:flex;height:100vh;overflow:hidden;background-image:radial-gradient(ellipse at 10% -10%, rgba(106,166,255,0.1), transparent 50%),radial-gradient(ellipse at 90% -20%, rgba(155,107,255,0.08), transparent 50%)}
-    .sidebar{width:var(--sidebar-width);background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;z-index:100;transition:transform .3s}
-    .sidebar-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-    .logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px}
-    .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));border-radius:8px;display:flex;align-items:center;justify-content:center}
-    .sidebar-content{flex:1;overflow-y:auto;padding:16px}
-    .section-title{font-size:14px;font-weight:600;text-transform:uppercase;color:var(--text-secondary);margin-bottom:12px;letter-spacing:.5px}
-    .new-chat-btn{width:100%;padding:12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px}
-    .conversation-list{display:flex;flex-direction:column;gap:8px}
-    .conversation-item{padding:12px;border-radius:var(--radius);cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:10px}
-    .conversation-item.active{background:rgba(106,166,255,0.15)}
-    .conversation-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
-    .conversation-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .topbar{padding:16px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);background:rgba(22,27,34,.8);backdrop-filter:blur(8px);z-index:10}
-    .chat-container{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
-    .message{max-width:800px;width:100%;display:flex;gap:16px;padding:16px;border-radius:var(--radius);background:var(--bg-secondary);border:1px solid var(--border);animation:fadeIn .3s}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-    .message.user{align-self:flex-end;border-left:3px solid var(--accent-primary)}
-    .message.assistant{border-left:3px solid var(--success)}
-    .avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .user .avatar{background:rgba(106,166,255,.15);color:var(--accent-primary)}
-    .assistant .avatar{background:rgba(58,210,159,.15);color:var(--success)}
-    .message-content{flex:1}
-    .message-header{font-weight:600;margin-bottom:8px}
-    .message-body{line-height:1.6}
-    .message-body pre{background:rgba(16,20,26,.8);border-radius:8px;padding:16px;overflow-x:auto;margin:12px 0;font-family:Fira Code,monospace;font-size:14px;border:1px solid var(--border)}
-    .composer{padding:16px 24px;background:rgba(22,27,34,.8);backdrop-filter:blur(8px);border-top:1px solid var(--border)}
-    .composer-inner{max-width:800px;margin:0 auto;display:flex;gap:12px}
-    .composer textarea{flex:1;min-height:var(--control-height);padding:12px 16px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:inherit;font-size:15px;resize:none;outline:none;transition:border-color .2s}
-    .send-btn{width:var(--control-height);height:var(--control-height);background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));border:none;border-radius:var(--radius);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer}
-    .build-btn{width:var(--control-height);height:var(--control-height);background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);display:flex;align-items:center;justify-content:center;cursor:pointer}
-    .builder-panel{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg-primary);z-index:1000;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s}
-    .builder-panel.active{transform:translateY(0)}
-    .builder-header{padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:var(--bg-secondary)}
-    .builder-main{flex:1;display:flex;overflow:hidden}
-    .file-explorer{width:280px;background:var(--bg-secondary);border-right:1px solid var(--border);padding:16px;overflow-y:auto}
-    .file-list{display:flex;flex-direction:column;gap:4px}
-    .file-item{padding:10px 12px;border-radius:var(--radius);display:flex;align-items:center;gap:8px;cursor:pointer}
-    .file-item:hover{background:var(--bg-tertiary)}
-    .file-item.active{background:rgba(106,166,255,.15)}
-    .editor-preview-container{flex:1;display:flex;flex-direction:column}
-    .editor-tabs{display:flex;background:var(--bg-secondary);border-bottom:1px solid var(--border)}
-    .editor-tab{padding:12px 20px;cursor:pointer;font-weight:500;border-bottom:2px solid transparent}
-    .editor-tab.active{border-bottom:2px solid var(--accent-primary);color:var(--accent-primary)}
-    .editor-content{flex:1;display:flex;overflow:hidden}
-    .editor-pane{flex:1;display:flex;flex-direction:column}
-    .code-editor{flex:1;background:var(--bg-tertiary);color:var(--text-primary);padding:16px;border:none;outline:none;font-family:Fira Code,monospace;font-size:14px;resize:none}
-    .editor-actions{padding:12px 16px;display:flex;justify-content:flex-end;gap:12px;background:var(--bg-secondary);border-top:1px solid var(--border)}
-    .editor-btn{padding:8px 16px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);cursor:pointer;font-weight:500;display:flex;align-items:center;gap:8px}
-    .editor-btn.primary{background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));color:white}
-    .preview-pane{flex:1;display:none;background:white;position:relative}
-    .preview-pane.active{display:block}
-    .preview-frame{width:100%;height:100%;border:none}
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background-image: 
+        radial-gradient(ellipse at 10% -10%, rgba(106, 166, 255, 0.1), transparent 50%),
+        radial-gradient(ellipse at 90% -20%, rgba(155, 107, 255, 0.08), transparent 50%);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-sidebar {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .new-chat-btn:hover {
+      background: rgba(106, 166, 255, 0.1);
+      border-color: var(--accent-primary);
+    }
+
+    .conversation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .conversation-item {
+      padding: 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .conversation-item.active {
+      background: rgba(106, 166, 255, 0.15);
+    }
+
+    .conversation-item:hover:not(.active) {
+      background: var(--bg-tertiary);
+    }
+
+    .conversation-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .conversation-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .conversation-actions {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .conversation-item:hover .conversation-actions {
+      opacity: 1;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+    }
+
+    .topbar {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(22, 27, 34, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    .toggle-sidebar {
+      display: none;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .current-conversation {
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message {
+      max-width: 800px;
+      width: 100%;
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      border-left: 3px solid var(--accent-primary);
+    }
+
+    .message.assistant {
+      border-left: 3px solid var(--success);
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .user .avatar {
+      background: rgba(106, 166, 255, 0.15);
+      color: var(--accent-primary);
+    }
+
+    .assistant .avatar {
+      background: rgba(58, 210, 159, 0.15);
+      color: var(--success);
+    }
+
+    .message-content {
+      flex: 1;
+    }
+
+    .message-header {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .message-body {
+      line-height: 1.6;
+    }
+
+    .message-body pre {
+      background: rgba(16, 20, 26, 0.8);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 12px 0;
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .message-body code {
+      background: rgba(106, 166, 255, 0.1);
+      color: var(--accent-primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+    }
+
+    .composer {
+      padding: 16px 24px;
+      background: rgba(22, 27, 34, 0.8);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border);
+    }
+
+    .composer-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+    }
+
+    .composer textarea {
+      flex: 1;
+      min-height: var(--control-height);
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .composer textarea:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .send-btn {
+      width: var(--control-height);
+      height: var(--control-height);
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border: none;
+      border-radius: var(--radius);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .send-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(106, 166, 255, 0.25);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .build-btn {
+      width: var(--control-height);
+      height: var(--control-height);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .build-btn:hover {
+      background: rgba(58, 210, 159, 0.1);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    /* Builder Panel */
+    .builder-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-primary);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .builder-panel.active {
+      transform: translateY(0);
+    }
+
+    .builder-header {
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .builder-title {
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .close-builder {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .builder-main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .file-explorer {
+      width: 280px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .file-explorer-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .file-action-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .file-item {
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .file-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .file-item.active {
+      background: rgba(106, 166, 255, 0.15);
+    }
+
+    .editor-preview-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-tabs {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .editor-tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+    }
+
+    .editor-tab.active {
+      border-bottom: 2px solid var(--accent-primary);
+      color: var(--accent-primary);
+    }
+
+    .editor-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-editor {
+      flex: 1;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 16px;
+      border: none;
+      outline: none;
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      resize: none;
+    }
+
+    .editor-actions {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+    }
+
+    .editor-btn {
+      padding: 8px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .editor-btn.primary {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: white;
+    }
+
+    .preview-pane {
+      flex: 1;
+      display: none;
+      background: white;
+      position: relative;
+    }
+
+    .preview-pane.active {
+      display: block;
+    }
+
+    .preview-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* AI Status Bar */
+    .ai-status-bar {
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    .ai-model {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: var(--bg-tertiary);
+    }
+
+    .ai-model.active {
+      background: rgba(58, 210, 159, 0.15);
+      color: var(--success);
+    }
+
+    .ai-model-icon {
+      font-size: 12px;
+    }
+
+    .progress-container {
+      flex: 1;
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+      width: 0;
+      transition: width 0.3s ease;
+    }
+
+    /* Loading Animation */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-4px); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .close-sidebar {
+        display: block;
+      }
+
+      .toggle-sidebar {
+        display: flex;
+      }
+
+      .composer-inner {
+        gap: 8px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -95,108 +711,188 @@
         </div>
         <span>Buddy AI</span>
       </div>
+      <button class="close-sidebar">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-
+    
     <div class="sidebar-content">
       <div class="sidebar-section">
-        <button id="newChat" class="new-chat-btn"><i class="fas fa-plus"></i> New Chat</button>
+        <button class="new-chat-btn" id="newChatBtn">
+          <i class="fas fa-plus"></i>
+          New Chat
+        </button>
       </div>
-
+      
       <div class="sidebar-section">
         <div class="section-title">Conversations</div>
-        <div class="conversation-list">
-          <div class="conversation-item active">
-            <div class="conversation-icon"><i class="fas fa-comment"></i></div>
-            <div class="conversation-name">Website Builder</div>
-          </div>
+        <div class="conversation-list" id="conversationList">
+          <!-- Conversations will be added dynamically -->
         </div>
       </div>
-
+      
       <div class="sidebar-section">
         <div class="section-title">Models</div>
         <div class="model-list">
-          <div class="conversation-item"><div class="conversation-icon"><i class="fas fa-brain"></i></div><div class="conversation-name">GPT-4 / GPT-4o</div></div>
-          <div class="conversation-item"><div class="conversation-icon"><i class="fas fa-brain"></i></div><div class="conversation-name">Claude 3.5</div></div>
-          <div class="conversation-item"><div class="conversation-icon"><i class="fas fa-brain"></i></div><div class="conversation-name">Grok</div></div>
-          <div class="conversation-item"><div class="conversation-icon"><i class="fas fa-brain"></i></div><div class="conversation-name">Deepseek</div></div>
-          <div class="conversation-item"><div class="conversation-icon"><i class="fas fa-brain"></i></div><div class="conversation-name">Llama</div></div>
+          <div class="conversation-item" data-model="gpt-4">
+            <div class="conversation-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="conversation-name">GPT-4</div>
+          </div>
+          
+          <div class="conversation-item" data-model="claude-3">
+            <div class="conversation-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="conversation-name">Claude 3.5</div>
+          </div>
+          
+          <div class="conversation-item" data-model="llama-3">
+            <div class="conversation-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="conversation-name">Llama 3.1</div>
+          </div>
+          
+          <div class="conversation-item" data-model="grok">
+            <div class="conversation-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="conversation-name">Grok</div>
+          </div>
+          
+          <div class="conversation-item" data-model="deepseek">
+            <div class="conversation-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="conversation-name">Deepseek</div>
+          </div>
         </div>
       </div>
     </div>
   </aside>
-
+  
   <!-- Main Content -->
   <main class="main-content">
     <div class="topbar">
-      <div class="current-conversation">Website Builder</div>
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <button id="signInBtn" class="build-btn" title="Sign in to Puter">Sign in</button>
-        <button id="buildBtn" class="build-btn" title="Start project build"><i class="fas fa-hammer"></i></button>
-      </div>
+      <button class="toggle-sidebar">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="current-conversation" id="currentConversation">New Conversation</div>
     </div>
-
+    
     <div class="chat-container" id="chatContainer">
-      <!-- Initial assistant message -->
       <div class="message assistant">
-        <div class="avatar"><i class="fas fa-robot"></i></div>
+        <div class="avatar">
+          <i class="fas fa-robot"></i>
+        </div>
         <div class="message-content">
           <div class="message-header">Buddy AI</div>
           <div class="message-body">
-            <p>Welcome! Click <strong>Sign in</strong> to connect Puter, then click the hammer to run the multi-AI project builder. You'll be asked to confirm model usage if cost applies.</p>
+            <p>Hello! I'm Buddy, your AI assistant. How can I help you today?</p>
+            <p>Here are some things I can do:</p>
+            <ul>
+              <li>Answer your questions</li>
+              <li>Help with coding problems</li>
+              <li>Generate content</li>
+              <li>Build complete web applications</li>
+            </ul>
+            <p>Select an AI model from the sidebar to get started!</p>
           </div>
         </div>
       </div>
     </div>
-
+    
     <div class="composer">
       <div class="composer-inner">
-        <textarea id="promptInput" placeholder="Describe what you want Buddy to build (e.g. 'Modern SaaS landing page with auth and hosting')"></textarea>
-        <button id="buildOpen" class="build-btn" title="Open builder panel"><i class="fas fa-hammer"></i></button>
-        <button id="sendBtn" class="send-btn" title="Send prompt"><i class="fas fa-paper-plane"></i></button>
+        <textarea id="userInput" placeholder="Ask Buddy anything..."></textarea>
+        <button class="build-btn" id="buildBtn" title="Build from prompt">
+          <i class="fas fa-hammer"></i>
+        </button>
+        <button class="send-btn" id="sendBtn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
       </div>
     </div>
-
+    
+    <!-- AI Status Bar -->
+    <div class="ai-status-bar" id="aiStatusBar">
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="ai-model" id="problemSolverModel">
+        <i class="ai-model-icon fas fa-question-circle"></i>
+        <span>Problem Solver</span>
+      </div>
+      <div class="ai-model" id="researcherModel">
+        <i class="ai-model-icon fas fa-search"></i>
+        <span>Researcher</span>
+      </div>
+      <div class="ai-model" id="architectModel">
+        <i class="ai-model-icon fas fa-sitemap"></i>
+        <span>Architect</span>
+      </div>
+      <div class="ai-model" id="coderModel">
+        <i class="ai-model-icon fas fa-code"></i>
+        <span>Coder</span>
+      </div>
+      <div class="ai-model" id="guideModel">
+        <i class="ai-model-icon fas fa-compass"></i>
+        <span>Guide</span>
+      </div>
+    </div>
+    
     <!-- Builder Panel -->
-    <div id="builderPanel" class="builder-panel">
+    <div class="builder-panel" id="builderPanel">
       <div class="builder-header">
         <div class="builder-title">Project Builder</div>
-        <button id="closeBuilder" class="close-builder"><i class="fas fa-times"></i></button>
+        <button class="close-builder" id="closeBuilder">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-
+      
       <div class="builder-main">
         <div class="file-explorer">
-          <div class="file-explorer-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <h3 style="margin:0">Project Files</h3>
+          <div class="file-explorer-header">
+            <h3>Project Files</h3>
             <div class="file-actions">
-              <button id="newFileBtn" class="file-action-btn" title="New file"><i class="fas fa-file"></i></button>
-              <button id="newFolderBtn" class="file-action-btn" title="New folder"><i class="fas fa-folder"></i></button>
+              <button class="file-action-btn" id="newFileBtn">
+                <i class="fas fa-file"></i>
+              </button>
+              <button class="file-action-btn" id="newFolderBtn">
+                <i class="fas fa-folder"></i>
+              </button>
             </div>
           </div>
-
+          
           <div class="file-list" id="fileList">
-            <!-- populated dynamically -->
+            <!-- Files will be added dynamically -->
           </div>
         </div>
-
+        
         <div class="editor-preview-container">
           <div class="editor-tabs">
-            <div id="tabEditor" class="editor-tab active">Editor</div>
-            <div id="tabPreview" class="editor-tab">Preview</div>
+            <div class="editor-tab active" data-tab="editor">Editor</div>
+            <div class="editor-tab" data-tab="preview">Preview</div>
           </div>
-
+          
           <div class="editor-content">
-            <div class="editor-pane" id="editorPane">
-              <textarea id="codeEditor" class="code-editor">// Open a project or run build to generate files here.</textarea>
-
+            <div class="editor-pane">
+              <textarea class="code-editor" id="codeEditor"></textarea>
+              
               <div class="editor-actions">
-                <button id="saveFileBtn" class="editor-btn"><i class="fas fa-save"></i> Save</button>
-                <button id="runProjectBtn" class="editor-btn primary"><i class="fas fa-play"></i> Run Project</button>
-                <button id="publishBtn" class="editor-btn"><i class="fas fa-cloud-upload-alt"></i> Publish</button>
+                <button class="editor-btn" id="saveFileBtn">
+                  <i class="fas fa-save"></i> Save
+                </button>
+                <button class="editor-btn primary" id="runProjectBtn">
+                  <i class="fas fa-play"></i> Run Project
+                </button>
               </div>
             </div>
-
-            <div class="preview-pane" id="previewPane">
-              <iframe id="previewFrame" class="preview-frame"></iframe>
+            
+            <div class="preview-pane">
+              <iframe class="preview-frame" id="previewFrame"></iframe>
             </div>
           </div>
         </div>
@@ -205,442 +901,500 @@
   </main>
 
   <script>
-  /**********************************************************************
-   * Buddy AI Project Builder
-   * - Uses puter.js (browser) to orchestrate 5 AI roles using puter.ai.chat
-   * - Creates files in puter.fs and can publish with puter.hosting.create
-   *
-   * Workflow (high level):
-   *  1. Coordinator (model A) decides user's need + breakdown
-   *  2. Searcher (model B) gathers external references / URLs
-   *  3. Architect (model C) outputs project structure / dependencies
-   *  4. Coder (model D) writes files line-by-line and puter.fs.write them
-   *  5. Guide/Streamer (model E) provides live status + next steps while files are made
-   *
-   * Notes:
-   * - Puter model availability varies. We will attempt to use these model ids:
-   *   -> coordinatorModel = "gpt-4" (primary), fallback "gpt-4o" or "gpt-4.1"
-   *   -> searchModel = "grok" (if available) or "gpt-4" / "claude"
-   *   -> architectModel = "claude"
-   *   -> coderModel = "gpt-4"
-   *   -> guideModel = "claude"
-   *
-   * - If a model isn't available, the code falls back and reports the situation.
-   **********************************************************************/
-
-  const chatContainer = document.getElementById('chatContainer');
-  const promptInput = document.getElementById('promptInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const buildBtn = document.getElementById('buildBtn');
-  const buildOpen = document.getElementById('buildOpen');
-  const signInBtn = document.getElementById('signInBtn');
-
-  const builderPanel = document.getElementById('builderPanel');
-  const closeBuilder = document.getElementById('closeBuilder');
-  const fileListEl = document.getElementById('fileList');
-  const codeEditor = document.getElementById('codeEditor');
-  const saveFileBtn = document.getElementById('saveFileBtn');
-  const runProjectBtn = document.getElementById('runProjectBtn');
-  const publishBtn = document.getElementById('publishBtn');
-  const previewPane = document.getElementById('previewPane');
-  const previewFrame = document.getElementById('previewFrame');
-  const tabEditor = document.getElementById('tabEditor');
-  const tabPreview = document.getElementById('tabPreview');
-
-  // Basic app state
-  let projectDir = null;
-  let activeFilePath = null;
-  let fileIndex = {}; // path => {name, content}
-  let userSignedIn = false;
-
-  // Default model choices (attempt these in order; Puter may or may not have all)
-  const modelCandidates = {
-    coordinator: ['gpt-4', 'gpt-4o', 'gpt-4.1', 'claude'],
-    searcher: ['grok', 'deepseek', 'gpt-4', 'claude'],
-    architect: ['claude', 'gpt-4'],
-    coder: ['gpt-4', 'gpt-4o', 'claude'],
-    guide: ['claude', 'gpt-4']
-  };
-
-  // Utility: push message into chat pane
-  function pushMessage(role, header, htmlContent) {
-    const msg = document.createElement('div');
-    msg.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
-    msg.innerHTML = `
-      <div class="avatar"><i class="${role === 'user' ? 'fas fa-user' : 'fas fa-robot'}"></i></div>
-      <div class="message-content">
-        <div class="message-header">${header}</div>
-        <div class="message-body">${htmlContent}</div>
-      </div>
-    `;
-    chatContainer.appendChild(msg);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-    return msg;
-  }
-
-  // Sign-in helper using puter.auth.signIn()
-  signInBtn.addEventListener('click', async () => {
-    try {
-      await puter.auth.signIn();
-      userSignedIn = true;
-      signInBtn.textContent = 'Signed in';
-      pushMessage('assistant', 'Buddy AI', '<p>Signed in to Puter.</p>');
-    } catch (err) {
-      console.error('Sign in failed', err);
-      pushMessage('assistant', 'Buddy AI', `<p style="color:var(--error)">Sign in failed: ${err.message || err}</p>`);
-    }
-  });
-
-  // buildOpen toggles the builder panel
-  buildOpen.addEventListener('click', () => builderPanel.classList.toggle('active'));
-  closeBuilder.addEventListener('click', () => builderPanel.classList.remove('active'));
-
-  // Tab switching
-  tabEditor.addEventListener('click', () => {
-    tabEditor.classList.add('active'); tabPreview.classList.remove('active');
-    document.getElementById('editorPane').style.display = 'flex';
-    previewPane.classList.remove('active');
-  });
-  tabPreview.addEventListener('click', () => {
-    tabPreview.classList.add('active'); tabEditor.classList.remove('active');
-    document.getElementById('editorPane').style.display = 'none';
-    previewPane.classList.add('active');
-  });
-
-  // Save button: write active file to puter.fs if we have projectDir & path
-  saveFileBtn.addEventListener('click', async () => {
-    if (!projectDir || !activeFilePath) {
-      pushMessage('assistant', 'Buddy AI', '<p style="color:var(--warning)">No file selected to save.</p>');
-      return;
-    }
-    try {
-      await puter.fs.write(`${projectDir}/${activeFilePath}`, fileIndex[activeFilePath].content);
-      pushMessage('assistant', 'Buddy AI', `<p>Saved <strong>${activeFilePath}</strong> to cloud.</p>`);
-    } catch (err) {
-      console.error(err);
-      pushMessage('assistant', 'Buddy AI', `<p style="color:var(--error)">Save failed: ${err.message || err}</p>`);
-    }
-  });
-
-  // Run project: if hosted, open in preview iframe or run local build by constructing an html blob
-  runProjectBtn.addEventListener('click', async () => {
-    if (!projectDir) return pushMessage('assistant', 'Buddy AI', '<p style="color:var(--warning)">No project. Run the builder first.</p>');
-    // try to read index.html from puter.fs, else build from fileIndex
-    try {
-      let htmlContent;
-      try {
-        const blob = await puter.fs.read(`${projectDir}/index.html`);
-        htmlContent = await blob.text();
-      } catch (e) {
-        // fallback: try fileIndex
-        htmlContent = fileIndex['index.html']?.content || '<h1>No index.html</h1>';
+    // State management
+    const state = {
+      currentConversation: null,
+      conversations: [],
+      activeModel: 'gpt-4',
+      project: {
+        files: [],
+        currentFile: null,
+        structure: null
+      },
+      aiStatus: {
+        problemSolver: false,
+        researcher: false,
+        architect: false,
+        coder: false,
+        guide: false
       }
-      // load into iframe as blob URL
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      previewFrame.src = url;
-      tabPreview.click();
-      pushMessage('assistant', 'Buddy AI', '<p>Preview loaded.</p>');
-    } catch (err) {
-      console.error(err);
-      pushMessage('assistant', 'Buddy AI', `<p style="color:var(--error)">Run failed: ${err.message || err}</p>`);
-    }
-  });
+    };
 
-  // Publish (host) via puter.hosting.create
-  publishBtn.addEventListener('click', async () => {
-    if (!projectDir) return pushMessage('assistant', 'Buddy AI', '<p style="color:var(--warning)">No project to publish.</p>');
-    try {
-      const subdomain = 'buddy-' + puter.randName();
-      pushMessage('assistant', 'Buddy AI', `<p>Publishing to subdomain <strong>${subdomain}.puter.site</strong> ...</p>`);
-      const site = await puter.hosting.create(subdomain, projectDir);
-      pushMessage('assistant', 'Buddy AI', `<p>Published: <a href="https://${site.subdomain}.puter.site" target="_blank">https://${site.subdomain}.puter.site</a></p>`);
-      previewFrame.src = `https://${site.subdomain}.puter.site`;
-      tabPreview.click();
-    } catch (err) {
-      console.error(err);
-      pushMessage('assistant', 'Buddy AI', `<p style="color:var(--error)">Publish failed: ${err.message || err}</p>`);
-    }
-  });
+    // DOM elements
+    const elements = {
+      sidebar: document.querySelector('.sidebar'),
+      toggleSidebar: document.querySelector('.toggle-sidebar'),
+      closeSidebar: document.querySelector('.close-sidebar'),
+      newChatBtn: document.getElementById('newChatBtn'),
+      conversationList: document.getElementById('conversationList'),
+      currentConversation: document.getElementById('currentConversation'),
+      chatContainer: document.getElementById('chatContainer'),
+      userInput: document.getElementById('userInput'),
+      sendBtn: document.getElementById('sendBtn'),
+      buildBtn: document.getElementById('buildBtn'),
+      builderPanel: document.getElementById('builderPanel'),
+      closeBuilder: document.getElementById('closeBuilder'),
+      fileList: document.getElementById('fileList'),
+      newFileBtn: document.getElementById('newFileBtn'),
+      newFolderBtn: document.getElementById('newFolderBtn'),
+      codeEditor: document.getElementById('codeEditor'),
+      saveFileBtn: document.getElementById('saveFileBtn'),
+      runProjectBtn: document.getElementById('runProjectBtn'),
+      previewFrame: document.getElementById('previewFrame'),
+      editorTabs: document.querySelectorAll('.editor-tab'),
+      problemSolverModel: document.getElementById('problemSolverModel'),
+      researcherModel: document.getElementById('researcherModel'),
+      architectModel: document.getElementById('architectModel'),
+      coderModel: document.getElementById('coderModel'),
+      guideModel: document.getElementById('guideModel'),
+      progressBar: document.getElementById('progressBar')
+    };
 
-  // small helper to render file list
-  function renderFileList() {
-    fileListEl.innerHTML = '';
-    Object.keys(fileIndex).forEach(path => {
-      const item = document.createElement('div');
-      item.className = 'file-item' + (path === activeFilePath ? ' active' : '');
-      item.innerHTML = `<i class="fas ${path.endsWith('/') ? 'fa-folder' : 'fa-file-code'}"></i><span style="margin-left:8px">${path}</span>`;
-      item.addEventListener('click', () => {
-        activeFilePath = path;
-        codeEditor.value = fileIndex[path].content;
-        renderFileList();
+    // Initialize the app
+    function init() {
+      setupEventListeners();
+      createNewConversation();
+      loadConversations();
+    }
+
+    // Set up event listeners
+    function setupEventListeners() {
+      // Sidebar interactions
+      elements.toggleSidebar.addEventListener('click', () => {
+        elements.sidebar.classList.toggle('active');
       });
-      fileListEl.appendChild(item);
-    });
-  }
-
-  // Keep codeEditor changes in memory
-  codeEditor.addEventListener('input', () => {
-    if (!activeFilePath) return;
-    fileIndex[activeFilePath].content = codeEditor.value;
-  });
-
-  // New file/folder actions (local fileIndex)
-  document.getElementById('newFileBtn').addEventListener('click', () => {
-    const name = prompt('File name (e.g. index.html):');
-    if (!name) return;
-    fileIndex[name] = { name, content: '' };
-    activeFilePath = name;
-    codeEditor.value = '';
-    renderFileList();
-  });
-  document.getElementById('newFolderBtn').addEventListener('click', () => {
-    const name = prompt('Folder name (e.g. src/):');
-    if (!name) return;
-    const folder = name.endsWith('/') ? name : name + '/';
-    fileIndex[folder] = { name: folder, content: null };
-    renderFileList();
-  });
-
-  // Send prompt as plain chat message
-  sendBtn.addEventListener('click', () => {
-    const text = promptInput.value.trim();
-    if (!text) return;
-    pushMessage('user', 'You', `<p>${escapeHtml(text)}</p>`);
-    promptInput.value = '';
-    pushMessage('assistant', 'Buddy AI', '<p>Got it — click the hammer (or Build) to run a full multi-AI build for this prompt.</p>');
-  });
-
-  // Primary build button: run orchestration
-  buildBtn.addEventListener('click', async () => {
-    const userPrompt = (promptInput.value || '').trim();
-    if (!userPrompt) {
-      pushMessage('assistant', 'Buddy AI', '<p style="color:var(--warning)">Please enter a prompt in the input field describing the project you want (e.g., "Modern SaaS landing page with auth").</p>');
-      return;
-    }
-    if (!puter?.ai?.chat) {
-      pushMessage('assistant', 'Buddy AI', '<p style="color:var(--error)">Puter.ai is not available in this environment.</p>');
-      console.error('puter.ai.chat not available');
-      return;
-    }
-
-    // Confirm model usage cost with the user
-    const consent = confirm('This builder will call multiple AI models (may use paid API credits). Continue?');
-    if (!consent) {
-      pushMessage('assistant', 'Buddy AI', '<p style="color:var(--warning)">Cancelled by user.</p>');
-      return;
-    }
-
-    // Start orchestration
-    await orchestrateBuild(userPrompt);
-  });
-
-  // Orchestration flow
-  async function orchestrateBuild(userPrompt) {
-    // Create project dir
-    projectDir = 'buddy-project-' + puter.randName();
-    fileIndex = {};
-    activeFilePath = null;
-    renderFileList();
-    pushMessage('assistant', 'Coordinator', `<p>Creating project <strong>${projectDir}</strong> and starting multi-AI orchestration...</p>`);
-
-    // Coordinator: decide problem decomposition
-    const coordinatorModel = await chooseAvailableModel(modelCandidates.coordinator);
-    if (!coordinatorModel) {
-      pushMessage('assistant', 'Coordinator', `<p style="color:var(--error)">No coordinator model available.</p>`);
-      return;
-    }
-    pushMessage('assistant', 'Coordinator', `<p>Using model <strong>${coordinatorModel}</strong> to analyze the prompt and produce tasks.</p>`);
-    const coordResp = await puter.ai.chat(`You are the coordinator. The user asked: "${userPrompt}". Produce:
-1) A one-sentence problem statement.
-2) A short ordered list (1..5) of tasks to solve this (e.g., search resources, design structure, write files, live guidance).
-3) For each task, name the preferred model from this list: [gpt-4, claude, grok, deepseek, llama] and provide a brief instruction for that model.
-Output JSON with keys: problem, tasks (array of {id,title,model,instruction}).`, { model: coordinatorModel });
-
-    // extract coordinator text (some Puter responses stream parts; handle string or object)
-    const coordText = (typeof coordResp === 'string') ? coordResp : (coordResp?.text || JSON.stringify(coordResp));
-    pushMessage('assistant', 'Coordinator (raw)', `<pre>${escapeHtml(coordText)}</pre>`);
-
-    // Basic parse attempt for JSON in coordinator output
-    let coordJson;
-    try {
-      coordJson = JSON.parse(coordText);
-    } catch (e) {
-      // fallback: ask coordinator to reformat strictly as JSON
-      pushMessage('assistant', 'Coordinator', `<p>Coordinator output was not valid JSON. Asking to reformat.</p>`);
-      const coordFix = await puter.ai.chat(`Reformat the following response strictly as JSON with keys "problem" and "tasks": ${coordText}`, { model: coordinatorModel });
-      const coordFixText = typeof coordFix === 'string' ? coordFix : (coordFix?.text || JSON.stringify(coordFix));
-      try { coordJson = JSON.parse(coordFixText); } catch (ee) { pushMessage('assistant','Coordinator',`<p style="color:var(--error)">Failed to parse coordinator JSON. Aborting.</p><pre>${escapeHtml(coordFixText)}</pre>`); return; }
-    }
-
-    // Now run tasks sequentially
-    for (const t of coordJson.tasks) {
-      pushMessage('assistant', 'Coordinator', `<p>Starting task <strong>${t.id} — ${t.title}</strong> (preferred model: ${t.model})</p>`);
-      // map requested model to available candidate
-      let assignedModel = await chooseAvailableModel([t.model].concat(modelCandidates[t.id] || []));
-      if (!assignedModel) {
-        // fallback to any available model
-        assignedModel = await chooseAnyModel();
-      }
-      // Run the selected task instruction on the assignedModel
-      pushMessage('assistant', 'Task Runner', `<p>Assigning to <strong>${assignedModel}</strong>: ${escapeHtml(t.instruction)}</p>`);
-      const resp = await puter.ai.chat(t.instruction, { model: assignedModel, stream: true });
-
-      // Stream the response into the chat and also route to appropriate handler based on task id/title
-      let fullText = '';
-      if (resp && Symbol.asyncIterator in resp) {
-        // streaming response iterator
-        for await (const part of resp) {
-          const chunk = part?.text || '';
-          fullText += chunk;
-          // append temporary streaming block to the UI
-          const streamingEl = pushMessage('assistant', `${t.title} — ${assignedModel}`, `<pre>${escapeHtml(fullText)}</pre>`);
+      
+      elements.closeSidebar.addEventListener('click', () => {
+        elements.sidebar.classList.remove('active');
+      });
+      
+      // Model selection
+      document.querySelectorAll('.conversation-item[data-model]').forEach(item => {
+        item.addEventListener('click', () => {
+          state.activeModel = item.dataset.model;
+          document.querySelectorAll('.conversation-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          addMessage('assistant', `Switched to ${item.querySelector('.conversation-name').textContent} model. How can I help you?`);
+        });
+      });
+      
+      // New conversation
+      elements.newChatBtn.addEventListener('click', createNewConversation);
+      
+      // Chat interactions
+      elements.userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
         }
-      } else {
-        fullText = typeof resp === 'string' ? resp : (resp?.text || JSON.stringify(resp));
-        pushMessage('assistant', `${t.title} — ${assignedModel}`, `<pre>${escapeHtml(fullText)}</pre>`);
-      }
-
-      // Handle outputs by task type hints in title or id
-      const lowerTitle = (t.title || '').toLowerCase();
-      if (lowerTitle.includes('search')) {
-        // expect a list of URLs or resources — save to a file
-        fileIndex['resources.txt'] = { name: 'resources.txt', content: fullText };
-        await puter.fs.write(`${projectDir}/resources.txt`, fullText);
-        pushMessage('assistant', 'Storage', `<p>Saved resources.txt</p>`);
-      } else if (lowerTitle.includes('architect') || lowerTitle.includes('architecture') || lowerTitle.includes('structure')) {
-        // expect JSON or a file/folder tree; create files/folders accordingly
-        // parse for a simple structure: lines like "src/: index.js, app.js" or JSON { files: { "index.html": "<html>..." } }
-        let created = 0;
-        try {
-          const parsed = JSON.parse(fullText);
-          if (parsed.files) {
-            for (const [p, content] of Object.entries(parsed.files)) {
-              fileIndex[p] = { name: p, content: content };
-              await puter.fs.write(`${projectDir}/${p}`, content);
-              created++;
-            }
-          }
-        } catch (e) {
-          // fallback: simple heuristic — if output contains "index.html" and code fences, extract
-          const codeBlocks = extractCodeBlocks(fullText);
-          if (codeBlocks.length) {
-            // if first block labelled index.html or contains <!DOCTYPE html>, store that as index.html
-            for (let i=0;i<codeBlocks.length;i++) {
-              const cb = codeBlocks[i];
-              let suggestedName = 'file' + (i+1) + '.txt';
-              if (cb.includes('<!DOCTYPE')) suggestedName = 'index.html';
-              if (cb.trim().startsWith('<')) {
-                suggestedName = suggestedName.replace('.txt', '.html');
-              }
-              fileIndex[suggestedName] = { name: suggestedName, content: cb };
-              await puter.fs.write(`${projectDir}/${suggestedName}`, cb);
-              created++;
-            }
-          }
+      });
+      
+      elements.sendBtn.addEventListener('click', sendMessage);
+      
+      // Builder interactions
+      elements.buildBtn.addEventListener('click', () => {
+        elements.builderPanel.classList.toggle('active');
+        if (elements.builderPanel.classList.contains('active') {
+          initializeProjectBuilder();
         }
-        pushMessage('assistant','Architect','<p>Created ' + created + ' files from architecture output.</p>');
-      } else if (lowerTitle.includes('code') || lowerTitle.includes('coder') || lowerTitle.includes('implement')) {
-        // The coder should produce files; extract code fences and write them
-        const codeBlocks = extractCodeBlocks(fullText);
-        let written = 0;
-        if (codeBlocks.length) {
-          for (const cb of codeBlocks) {
-            // Heuristic to name files using first line comments or tags like "### filename: index.html"
-            let fileName = inferFilenameFromCode(cb) || ('file-' + (++written) + '.txt');
-            // if an index.html already exists, append -n
-            if (fileIndex[fileName]) {
-              fileName = fileName.replace('.', '-' + Date.now() + '.');
-            }
-            fileIndex[fileName] = { name: fileName, content: cb };
-            await puter.fs.write(`${projectDir}/${fileName}`, cb);
-            written++;
+      });
+      
+      elements.closeBuilder.addEventListener('click', () => {
+        elements.builderPanel.classList.remove('active');
+      });
+      
+      // Editor tabs
+      elements.editorTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          elements.editorTabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          if (tab.dataset.tab === 'preview') {
+            document.querySelector('.editor-pane').style.display = 'none';
+            document.querySelector('.preview-pane').classList.add('active');
+            updatePreview();
+          } else {
+            document.querySelector('.editor-pane').style.display = 'flex';
+            document.querySelector('.preview-pane').classList.remove('active');
           }
+        });
+      });
+      
+      // File actions
+      elements.newFileBtn.addEventListener('click', () => {
+        const fileName = prompt('Enter file name (include extension):', 'newfile.js');
+        if (fileName) {
+          addFileToProject(fileName, '');
+        }
+      });
+      
+      elements.newFolderBtn.addEventListener('click', () => {
+        const folderName = prompt('Enter folder name:', 'newfolder');
+        if (folderName) {
+          addFileToProject(folderName + '/', null, true);
+        }
+      });
+      
+      elements.saveFileBtn.addEventListener('click', saveCurrentFile);
+      elements.runProjectBtn.addEventListener('click', runProject);
+      
+      // Auto-resize textarea
+      elements.userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+      
+      // Initial resize
+      elements.userInput.dispatchEvent(new Event('input'));
+    }
+
+    // Conversation management
+    function createNewConversation() {
+      const conversation = {
+        id: Date.now(),
+        title: 'New Conversation',
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      state.conversations.unshift(conversation);
+      state.currentConversation = conversation;
+      
+      updateConversationList();
+      updateCurrentConversation();
+      
+      // Clear chat container except for the first assistant message
+      elements.chatContainer.innerHTML = `
+        <div class="message assistant">
+          <div class="avatar">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-header">Buddy AI</div>
+            <div class="message-body">
+              <p>Hello! I'm Buddy, your AI assistant. How can I help you today?</p>
+              <p>I'm currently using the ${state.activeModel} model.</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      elements.userInput.focus();
+    }
+
+    function loadConversations() {
+      // In a real app, this would load from localStorage or a database
+      const sampleConversations = [
+        {
+          id: 1,
+          title: 'Website Design Discussion',
+          messages: [],
+          createdAt: new Date(Date.now() - 86400000),
+          updatedAt: new Date(Date.now() - 3600000)
+        },
+        {
+          id: 2,
+          title: 'API Integration',
+          messages: [],
+          createdAt: new Date(Date.now() - 172800000),
+          updatedAt: new Date(Date.now() - 7200000)
+        },
+        {
+          id: 3,
+          title: 'Project Planning',
+          messages: [],
+          createdAt: new Date(Date.now() - 259200000),
+          updatedAt: new Date(Date.now() - 10800000)
+        }
+      ];
+      
+      state.conversations = sampleConversations;
+      updateConversationList();
+    }
+
+    function updateConversationList() {
+      elements.conversationList.innerHTML = '';
+      
+      state.conversations.forEach(conversation => {
+        const isActive = state.currentConversation && state.currentConversation.id === conversation.id;
+        
+        const item = document.createElement('div');
+        item.className = `conversation-item ${isActive ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="conversation-icon">
+            <i class="fas fa-comment"></i>
+          </div>
+          <div class="conversation-name">${conversation.title}</div>
+          <div class="conversation-actions">
+            <button class="action-btn">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="action-btn">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `;
+        
+        item.addEventListener('click', () => {
+          state.currentConversation = conversation;
+          updateCurrentConversation();
+          updateConversationList();
+        });
+        
+        elements.conversationList.appendChild(item);
+      });
+    }
+
+    function updateCurrentConversation() {
+      if (state.currentConversation) {
+        elements.currentConversation.textContent = state.currentConversation.title;
+      }
+    }
+
+    // Chat functionality
+    function sendMessage() {
+      const message = elements.userInput.value.trim();
+      if (!message) return;
+      
+      addMessage('user', message);
+      elements.userInput.value = '';
+      elements.userInput.style.height = 'auto';
+      
+      // Simulate AI response
+      setTimeout(() => {
+        simulateAIResponse(message);
+      }, 1000);
+    }
+
+    function addMessage(role, content) {
+      const message = document.createElement('div');
+      message.className = `message ${role}`;
+      
+      message.innerHTML = `
+        <div class="avatar">
+          <i class="fas fa-${role === 'user' ? 'user' : 'robot'}"></i>
+        </div>
+        <div class="message-content">
+          <div class="message-header">${role === 'user' ? 'You' : 'Buddy AI'}</div>
+          <div class="message-body">
+            <p>${content}</p>
+          </div>
+        </div>
+      `;
+      
+      elements.chatContainer.appendChild(message);
+      message.scrollIntoView({ behavior: 'smooth' });
+      
+      // Add to conversation history
+      if (state.currentConversation) {
+        state.currentConversation.messages.push({ role, content });
+        state.currentConversation.updatedAt = new Date();
+        updateConversationList();
+      }
+    }
+
+    function simulateAIResponse(userMessage) {
+      // Show typing indicator
+      const typingIndicator = document.createElement('div');
+      typingIndicator.className = 'message assistant';
+      typingIndicator.innerHTML = `
+        <div class="avatar">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div class="message-content">
+          <div class="message-header">Buddy AI</div>
+          <div class="message-body">
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      elements.chatContainer.appendChild(typingIndicator);
+      typingIndicator.scrollIntoView({ behavior: 'smooth' });
+      
+      // Simulate AI processing
+      setTimeout(() => {
+        // Remove typing indicator
+        typingIndicator.remove();
+        
+        // Generate response based on user message
+        let response;
+        if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
+          response = `Hello there! I'm Buddy AI, currently using the ${state.activeModel} model. How can I assist you today?`;
+        } else if (userMessage.toLowerCase().includes('build') || userMessage.toLowerCase().includes('create')) {
+          response = `I can help you build that! Click the hammer button to open the project builder, or describe what you'd like to build and I can generate the code for you.`;
+        } else if (userMessage.toLowerCase().includes('thank')) {
+          response = `You're welcome! Is there anything else I can help you with?`;
         } else {
-          // if coder returned raw textual project, save as project.txt
-          fileIndex['project.txt'] = { name: 'project.txt', content: fullText };
-          await puter.fs.write(`${projectDir}/project.txt`, fullText);
+          response = `I understand you're asking about "${userMessage}". As the ${state.activeModel} model, I can provide detailed information about this topic. Would you like me to elaborate?`;
         }
-        pushMessage('assistant','Coder',`<p>Wrote ${Object.keys(fileIndex).length} files. Files: ${Object.keys(fileIndex).join(', ')}</p>`);
-      } else if (lowerTitle.includes('guide') || lowerTitle.includes('stream') || lowerTitle.includes('progress')) {
-        // Guide messages shown already — optionally keep as log
-        await puter.fs.write(`${projectDir}/guide.log`, fullText);
+        
+        addMessage('assistant', response);
+      }, 1500 + Math.random() * 2000);
+    }
+
+    // Project Builder functionality
+    function initializeProjectBuilder() {
+      // Initialize with basic project structure
+      state.project = {
+        files: [
+          { name: 'index.html', content: '<!DOCTYPE html>\n<html>\n<head>\n  <title>My Project</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>', type: 'file' },
+          { name: 'styles.css', content: 'body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 20px;\n}', type: 'file' },
+          { name: 'script.js', content: 'console.log("Hello from JavaScript!");', type: 'file' },
+          { name: 'assets/', content: null, type: 'folder' }
+        ],
+        currentFile: 'index.html',
+        structure: {
+          'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head>\n  <title>My Project</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>' },
+          'styles.css': { type: 'file', content: 'body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 20px;\n}' },
+          'script.js': { type: 'file', content: 'console.log("Hello from JavaScript!");' },
+          'assets/': { type: 'folder', children: {} }
+        }
+      };
+      
+      updateFileExplorer();
+      loadFileContent(state.project.currentFile);
+    }
+
+    function updateFileExplorer() {
+      elements.fileList.innerHTML = '';
+      
+      state.project.files.forEach(file => {
+        const item = document.createElement('div');
+        item.className = `file-item ${file.name === state.project.currentFile ? 'active' : ''}`;
+        item.innerHTML = `
+          <i class="fas fa-${file.type === 'folder' ? 'folder' : 'file-code'}"></i>
+          <span>${file.name}</span>
+        `;
+        
+        item.addEventListener('click', () => {
+          if (file.type === 'file') {
+            state.project.currentFile = file.name;
+            loadFileContent(file.name);
+            updateFileExplorer();
+          }
+        });
+        
+        elements.fileList.appendChild(item);
+      });
+    }
+
+    function loadFileContent(filename) {
+      const file = state.project.files.find(f => f.name === filename);
+      if (file) {
+        elements.codeEditor.value = file.content || '';
+      }
+    }
+
+    function addFileToProject(name, content = '', isFolder = false) {
+      const type = isFolder ? 'folder' : 'file';
+      const newFile = { name, content, type };
+      
+      state.project.files.push(newFile);
+      
+      // Update the project structure
+      if (isFolder) {
+        state.project.structure[name] = { type: 'folder', children: {} };
       } else {
-        // General output — save to a task-specific file
-        const safeName = t.title.replace(/[^\w\-]/g,'_').slice(0,40) + '.txt';
-        fileIndex[safeName] = { name: safeName, content: fullText };
-        await puter.fs.write(`${projectDir}/${safeName}`, fullText);
+        state.project.structure[name] = { type: 'file', content };
       }
+      
+      updateFileExplorer();
+    }
 
-      // render updated file list and continue
-      renderFileList();
-    } // end for tasks
-
-    pushMessage('assistant', 'Coordinator', `<p>Orchestration finished. Project directory: <strong>${projectDir}</strong>. You can preview, save, or publish it.</p>`);
-  }
-
-  // Utility: try candidate models in order by making a lightweight probe call
-  async function chooseAvailableModel(candidates = []) {
-    for (const m of candidates) {
-      try {
-        // probe: short harmless prompt and small timeout
-        const probe = await puter.ai.chat(`(probe) Are you model "${m}" available? Reply "yes" succinctly.`, { model: m, max_tokens: 12, timeout: 8000 });
-        const text = typeof probe === 'string' ? probe : (probe?.text || '');
-        if (text && /yes/i.test(text)) return m;
-        // if probe returns something treat as available (some providers won't echo)
-        if (text && text.length > 0) return m;
-      } catch (err) {
-        // model not available, try next
-        console.info('Model probe failed for', m, err?.message || err);
+    function saveCurrentFile() {
+      const currentFile = state.project.files.find(f => f.name === state.project.currentFile);
+      if (currentFile) {
+        currentFile.content = elements.codeEditor.value;
+        state.project.structure[currentFile.name].content = elements.codeEditor.value;
+        showToast('File saved successfully');
       }
     }
-    // if none matched, return null
-    return null;
-  }
 
-  // choose any available model as final fallback by probing a small set
-  async function chooseAnyModel() {
-    const pool = ['gpt-4','gpt-4o','gpt-4.1','claude','grok','deepseek','llama'];
-    return await chooseAvailableModel(pool);
-  }
-
-  // Extract triple-backtick code blocks
-  function extractCodeBlocks(text) {
-    const re = /```(?:[a-zA-Z0-9\-\_\.]+)?\n([\s\S]*?)```/g;
-    const blocks = [];
-    let m;
-    while ((m = re.exec(text)) !== null) blocks.push(m[1].trim());
-    // also capture html-looking full text
-    if (blocks.length === 0 && /<!DOCTYPE|<html/i.test(text)) {
-      blocks.push(text);
+    function runProject() {
+      updatePreview();
+      document.querySelector('.editor-tab[data-tab="preview"]').click();
     }
-    return blocks;
-  }
 
-  // Try to infer filename from code via comments or hints
-  function inferFilenameFromCode(code) {
-    // look for comment lines like // filename: index.html or <!-- filename: index.html -->
-    const m1 = code.match(/filename:\s*([^\s]+)/i);
-    if (m1) return m1[1].trim();
-    const m2 = code.match(/<title>([^<]+)<\/title>/i);
-    if (m2) return 'index.html';
-    if (code.trim().startsWith('<')) return 'index.html';
-    if (code.includes('import') && code.includes('react')) return 'app.jsx';
-    return null;
-  }
+    function updatePreview() {
+      const htmlFile = state.project.files.find(f => f.name === 'index.html');
+      if (htmlFile) {
+        const blob = new Blob([htmlFile.content], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        elements.previewFrame.src = url;
+      }
+    }
 
-  // small escape helper
-  function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\n','<br>'); }
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
 
-  // Infer when page loads — show list of files if any
-  (async function init() {
-    // try to list user's root directories (requires sign-in)
-    try {
-      const signed = await puter.auth.isSignedIn();
-      if (signed) { userSignedIn = true; signInBtn.textContent = 'Signed in'; }
-    } catch (e) { console.log('init auth check failed', e); }
-  })();
+    // AI Orchestration
+    function startAIOrchestration(prompt) {
+      // Reset progress
+      updateAIStatus('problemSolver', true);
+      elements.progressBar.style.width = '20%';
+      
+      // Simulate AI collaboration
+      setTimeout(() => {
+        updateAIStatus('problemSolver', false);
+        updateAIStatus('researcher', true);
+        elements.progressBar.style.width = '40%';
+        
+        setTimeout(() => {
+          updateAIStatus('researcher', false);
+          updateAIStatus('architect', true);
+          elements.progressBar.style.width = '60%';
+          
+          setTimeout(() => {
+            updateAIStatus('architect', false);
+            updateAIStatus('coder', true);
+            elements.progressBar.style.width = '80%';
+            
+            setTimeout(() => {
+              updateAIStatus('coder', false);
+              updateAIStatus('guide', true);
+              elements.progressBar.style.width = '100%';
+              
+              setTimeout(() => {
+                updateAIStatus('guide', false);
+                elements.progressBar.style.width = '0';
+                
+                // Show the completed project
+                addMessage('assistant', 'I\'ve completed building your project! Click the hammer button to view and edit it.');
+                elements.buildBtn.click();
+              }, 1000);
+            }, 1500);
+          }, 1500);
+        }, 1500);
+      }, 1500);
+    }
 
+    function updateAIStatus(model, isActive) {
+      state.aiStatus[model] = isActive;
+      const element = elements[`${model}Model`];
+      
+      if (isActive) {
+        element.classList.add('active');
+      } else {
+        element.classList.remove('active');
+      }
+    }
+
+    // Initialize the app
+    init();
   </script>
 </body>
 </html>
