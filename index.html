@@ -1206,7 +1206,7 @@
       });
       
       try {
-        const response = await puter.ai.chat(message, { model: 'gpt-4o' });
+        const response = await puter.ai.chat(message, { model: 'openai/gpt-4o' });
         removeMessage(loadingId);
         addMessage({
           id: Date.now().toString(),
@@ -1250,7 +1250,7 @@
         
         // Decider AI
         addGuideMessage('Analyzing your request...');
-        const deciderModel = 'grok-beta';
+        const deciderModel = 'xai/grok-beta';
         const deciderPrompt = `Analyze the user's build request: "${prompt}". Determine what the user wants to build, key features, technologies to use. Also, list 3-5 search queries to gather more data if needed.
 Output only valid JSON: {
   "summary": "brief summary",
@@ -1264,7 +1264,7 @@ Output only valid JSON: {
 
         // Researcher AI
         addGuideMessage('Researching additional data...');
-        const researchModel = 'gemini-1.5-flash';
+        const researchModel = 'google/gemini-flash-1.5';
         let researchData = '';
         for (const query of deciderJson.search_queries) {
           const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
@@ -1277,7 +1277,7 @@ Output only valid JSON: {
 
         // Architect AI
         addGuideMessage('Designing project architecture...');
-        const architectModel = 'claude-3-5-sonnet';
+        const architectModel = 'anthropic/claude-3.5-sonnet';
         const architectPrompt = `Design the file structure for the project: ${deciderJson.summary}. Features: ${deciderJson.features.join(', ')}. Technologies: ${deciderJson.technologies.join(', ')}. Research: ${researchSummary}.
 Output only valid JSON: {
   "folders": ["path/to/folder", ...],
@@ -1302,7 +1302,7 @@ Output only valid JSON: {
 
         // Coder AI
         addGuideMessage('Generating code...');
-        const coderModel = 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo';
+        const coderModel = 'meta-llama/meta-llama-3.1-405b-instruct';
         for (const file of architectJson.files) {
           addGuideMessage(`Generating code for ${file.path}...`);
           const codePrompt = `Write the complete code for ${file.path} in the project ${deciderJson.summary}. Description: ${file.description}. Use libraries: ${file.libraries.join(', ')}. Make sure it fits with other files.
@@ -1390,7 +1390,7 @@ Output only the code, no explanations.`;
     }
 
     // Load project files recursively
-    async function loadProjectFiles(path = state.projectRoot, parent = null) {
+    async function loadProjectFiles(path = state.projectRoot) {
       try {
         const entries = await puter.fs.readdir(path);
         const items = [];
@@ -1398,14 +1398,13 @@ Output only the code, no explanations.`;
           const fullPath = `${path}/${entry}`;
           const stat = await puter.fs.stat(fullPath);
           if (stat.is_dir) {
-            const item = { id: fullPath, name: entry, type: 'folder', children: [] };
-            item.children = await loadProjectFiles(fullPath);
+            const item = { id: fullPath, name: entry, type: 'folder', children: await loadProjectFiles(fullPath) };
             items.push(item);
           } else {
             items.push({ id: fullPath, name: entry, type: 'file' });
           }
         }
-        if (parent === null) {
+        if (path === state.projectRoot) {
           state.projectFiles = items;
         }
         return items;
@@ -1620,7 +1619,7 @@ Output only the code, no explanations.`;
       items.forEach(item => {
         const fileEl = document.createElement('div');
         fileEl.className = `file-item ${item.id === state.selectedFileId ? 'active' : ''}`;
-        fileEl.style.paddingLeft = `${level * 20}px`;
+        fileEl.style.paddingLeft = `${level * 20 + 12}px`;
         fileEl.innerHTML = `
           <i class="fas ${item.type === 'folder' ? 'fa-folder' : 'fa-file-code'}"></i>
           <span>${item.name}</span>
