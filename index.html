@@ -17,6 +17,7 @@
         --ok: #3ad29f;
         --warn: #ffcc66;
         --err: #ff6b6b;
+        --control-h: 44px;
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; }
@@ -36,12 +37,7 @@
         flex-direction: column;
         gap: 16px;
       }
-      .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
+      .header { display: none; }
       .title {
         font-size: 22px;
         font-weight: 700;
@@ -145,52 +141,125 @@
       code, pre { white-space: pre-wrap; }
       a { color: var(--accent); }
     </style>
+    <style>
+      /* Bottom composer and action UI */
+      .topbar { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; background: rgba(18,21,26,0.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 10px 12px; }
+      .burger { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+      .brand { font-weight: 700; letter-spacing: 0.3px; }
+      .topbar-left { display: inline-flex; align-items: center; gap: 10px; }
+      .topbar-center { justify-self: center; text-align: center; }
+      .topbar-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 280px; background: var(--panel); border-right: 1px solid var(--border); transform: translateX(-100%); transition: transform .2s ease; z-index: 10; padding: 12px; overflow: auto; display: flex; flex-direction: column; }
+      .sidebar.open { transform: translateX(0); }
+      .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 9; }
+      .backdrop.show { opacity: 1; pointer-events: auto; }
+      .sb-section { margin-bottom: 16px; }
+      .sb-title { font-weight: 700; margin-bottom: 8px; }
+      .sb-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+      .conv-item { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+      .conv-name { background: transparent; color: var(--text); border: none; outline: none; width: 100%; }
+      .icon { background: var(--panel); border: 1px solid var(--border); color: var(--text); width: 28px; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+      .model-list { display: grid; gap: 6px; max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+      .model-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+      .hidden { display: none; }
+      .sb-models { position: sticky; bottom: 0; background: var(--panel); padding-top: 8px; border-top: 1px solid var(--border); }
+      .composer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-top: 1px solid var(--border);
+        background: rgba(18,21,26,0.9);
+        backdrop-filter: blur(8px);
+        padding: 10px 12px;
+      }
+      .composer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+      .attach { display: flex; gap: 6px; align-items: center; }
+      .icon-btn { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: var(--control-h); height: var(--control-h); padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+      .icon-btn input[type=file] { display: none; }
+      .chips { max-width: 1100px; margin: 6px auto 0; display: flex; gap: 8px; flex-wrap: wrap; }
+      .chip { border: 1px dashed var(--border); border-radius: 8px; padding: 6px 8px; }
+      .toolbar { display: flex; gap: 8px; margin-top: 8px; }
+      .btn { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+      .send { display: inline-flex; align-items: center; justify-content: center; width: var(--control-h); height: var(--control-h); background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; }
+      .send:disabled { opacity: .6; cursor: not-allowed; }
+      .preview-frame { width: 100%; height: 420px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+      .spacer { height: 120px; }
+      @media (max-width: 640px) { .composer-inner { grid-template-columns: 1fr auto; } .attach { grid-column: 1/-1; } }
+    </style>
+    <style>
+      /* Ensure composer textarea aligns exactly with controls */
+      .composer textarea {
+        min-height: var(--control-h);
+        height: auto;
+        max-height: none;
+        padding: 10px 12px;
+        overflow-y: hidden;
+      }
+    </style>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <div class="title">Buddy AI</div>
-        <div class="controls">
-          <div class="toggle-group" title="Enable or disable providers">
-            <div class="toggle"><input id="cbGrok" type="checkbox" checked /><label for="cbGrok">Grok</label></div>
-            <div class="toggle"><input id="cbDeepseek" type="checkbox" checked /><label for="cbDeepseek">DeepSeek</label></div>
-            <div class="toggle"><input id="cbChatgpt" type="checkbox" checked /><label for="cbChatgpt">ChatGPT</label></div>
-          </div>
-          <div class="mode-group">
-            <div class="toggle"><input id="modeParallel" name="mode" type="radio" value="parallel" checked /><label for="modeParallel">Parallel</label></div>
-            <div class="toggle"><input id="modePipeline" name="mode" type="radio" value="pipeline" /><label for="modePipeline">Pipeline</label></div>
-            <div id="pipelineExtras" class="mode-extra">
-              <span class="muted small">Retriever</span>
-              <select id="retrieverSel">
-                <option value="grok">Grok</option>
-                <option value="deepseek">DeepSeek</option>
-                <option value="chatgpt">ChatGPT</option>
-              </select>
-              <span class="muted small">Summarizer</span>
-              <select id="summarizerSel">
-                <option value="chatgpt">ChatGPT</option>
-                <option value="deepseek">DeepSeek</option>
-                <option value="grok">Grok</option>
-              </select>
-            </div>
-          </div>
-        </div>
+    <div class="topbar">
+      <div class="topbar-left">
+        <button id="toggleSidebar" class="burger" aria-label="Menu">☰</button>
+        <div class="brand">Buddy AI</div>
       </div>
+      <div class="topbar-center">
+        <div class="topbar-note small muted">No login. No limits. Refresh clears the conversation.</div>
+      </div>
+      <div></div>
+    </div>
+    <div id="backdrop" class="backdrop"></div>
+    <aside id="sidebar" class="sidebar">
+      <div class="sb-section" style="display:flex; justify-content: space-between; align-items:center;">
+        <div class="sb-title" style="margin:0">Buddy AI</div>
+        <button id="closeSidebar" class="icon" aria-label="Close">✕</button>
+      </div>
+      <div class="sb-section">
+        <div class="sb-title">Conversations</div>
+        <button id="btnNewChat" class="btn" style="width:100%">+ New Chat</button>
+        <div id="convList" style="margin-top:8px"></div>
+      </div>
+      <div class="sb-section sb-models" style="margin-top:auto;">
+        <div class="sb-title-row">
+          <div class="sb-title" style="margin:0">Models</div>
+          <button id="modelsToggle" class="icon" aria-label="Toggle models">▶</button>
+        </div>
+        <div id="modelList" class="model-list hidden"></div>
+      </div>
+    </aside>
+    <div class="container">
+      <div class="header"></div>
 
-      <div class="input-bar">
-        <textarea id="query" placeholder="Ask anything... (Shift+Enter for newline)"></textarea>
-        <button id="sendBtn">Send</button>
+      <div class="input-bar" style="display:none">
+        <textarea id="query_top" placeholder="Ask anything..."></textarea>
+        <button id="sendBtnTop">Send</button>
       </div>
 
       <div class="chat" id="chat"></div>
 
-      <div class="providers" id="providers"></div>
+      <div class="providers" id="providers" style="display:none"></div>
 
       <div class="bubble combined" id="combined" style="display:none"></div>
-
-      <div class="muted small">No login. Your keys stay on your server function. Refresh clears the conversation.</div>
     </div>
 
+    <div class="spacer"></div>
+    <div class="composer">
+      <div class="composer-inner">
+        <div class="attach">
+          <label class="icon-btn" title="Attach (image or text)"><input id="attachInput" type="file" accept="image/*,.txt,.md,.json,application/json,text/plain"><span>📎</span></label>
+        </div>
+        <textarea id="query" placeholder="Ask anything... (Shift+Enter for newline)"></textarea>
+        <button class="send" id="sendBtn" aria-label="Send">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 11L21 3L13 21L11 13L3 11Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div id="attachments" class="chips"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
       const PROVIDER_MODELS = {
         chatgpt: 'gpt-4o',
@@ -203,18 +272,25 @@
       const combinedEl = document.getElementById('combined');
       const queryEl = document.getElementById('query');
       const sendBtn = document.getElementById('sendBtn');
+      const attachInput = document.getElementById('attachInput');
+      const attachmentsEl = document.getElementById('attachments');
+      let pendingImage = null; let pendingTextFile = null;
 
-      const cbGrok = document.getElementById('cbGrok');
-      const cbDeepseek = document.getElementById('cbDeepseek');
-      const cbChatgpt = document.getElementById('cbChatgpt');
+      // Sidebar elements
+      const sidebar = document.getElementById('sidebar');
+      const toggleSidebarBtn = document.getElementById('toggleSidebar');
+      const closeSidebarBtn = document.getElementById('closeSidebar');
+      const backdrop = document.getElementById('backdrop');
+      const btnNewChat = document.getElementById('btnNewChat');
+      const convList = document.getElementById('convList');
+      const modelList = document.getElementById('modelList');
+      const modelsToggle = document.getElementById('modelsToggle');
 
-      const modeParallel = document.getElementById('modeParallel');
-      const modePipeline = document.getElementById('modePipeline');
-      const pipelineExtras = document.getElementById('pipelineExtras');
-      const retrieverSel = document.getElementById('retrieverSel');
-      const summarizerSel = document.getElementById('summarizerSel');
-
-      const history = []; // Array<{ role: 'user'|'assistant', content: string }>
+      // Conversations state
+      let conversations = [];
+      let activeConversationId = null;
+      let history = []; // alias to active conversation history
+      let selectedModels = null; // Set of model ids
 
       function escapeHtml(str) {
         return str
@@ -225,7 +301,7 @@
 
       function buildMessages(historyArr, userQuery) {
         const msgs = [
-          { role: 'system', content: 'You are an expert assistant. Provide accurate, concise, well-structured answers.' }
+          { role: 'system', content: 'You are an expert assistant. Provide accurate, concise, well-structured answers. Do not truncate your output. Return complete results.' }
         ];
         if (Array.isArray(historyArr)) {
           for (const m of historyArr) {
@@ -248,16 +324,8 @@
         try { return JSON.stringify(resp); } catch { return String(resp); }
       }
 
-      async function askChatGPT(messages) {
-        const resp = await puter.ai.chat(messages, { model: PROVIDER_MODELS.chatgpt });
-        return extractText(resp);
-      }
-      async function askDeepseek(messages) {
-        const resp = await puter.ai.chat(messages, { model: PROVIDER_MODELS.deepseek });
-        return extractText(resp);
-      }
-      async function askGrok(messages) {
-        const resp = await puter.ai.chat(messages, { model: PROVIDER_MODELS.grok });
+      async function askModel(messages, modelId) {
+        const resp = await puter.ai.chat(messages, { model: modelId });
         return extractText(resp);
       }
 
@@ -266,7 +334,7 @@
         const bullets = ordered.map(p => `- ${p}: ${(answersByProvider[p] || '').slice(0, 8000)}`).join('\n');
         const prompt = `You are an expert editor that merges multiple AI answers into one concise, accurate, and well-structured response.\n\nUser query:\n${query}\n\nModel answers:\n${bullets}`;
         const msgs = [
-          { role: 'system', content: 'You are a careful, reliable editor and synthesizer.' },
+          { role: 'system', content: 'You are a careful, reliable editor and synthesizer. Do not truncate. Include all critical details. Keep code complete.' },
           ...historyArr.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6),
           { role: 'user', content: prompt },
         ];
@@ -275,14 +343,27 @@
         return askChatGPT(msgs);
       }
 
-      async function runParallel(enabledProviders, historyArr, query, summarizer) {
+      // Full model list based on Puter examples (use as ensemble)
+      const ALL_MODELS = [
+        'gpt-4.1', 'gpt-4o', 'gpt-4.1-nano', 'o3-mini', 'o1-mini',
+        'deepseek-chat', 'deepseek-reasoner',
+        'x-ai/grok-4',
+        'meta-llama/llama-4-maverick', 'meta-llama/llama-3.3-70b-instruct', 'meta-llama/llama-3.1-8b-instruct', 'meta-llama/llama-guard-3-8b',
+        'claude-3-5-sonnet'
+      ];
+      const SELECTED_MODELS = ALL_MODELS.slice(); // use all by default
+
+      async function runParallel(modelIds, historyArr, query, summarizer) {
         const messages = buildMessages(historyArr, query);
         const results = {};
         const tasks = [];
-        const set = new Set(enabledProviders.map(p => p.toLowerCase()));
-        if (set.has('chatgpt')) tasks.push(askChatGPT(messages).then(c => results.chatgpt = c).catch(e => results.chatgpt = `Error: ${e.message}`));
-        if (set.has('deepseek')) tasks.push(askDeepseek(messages).then(c => results.deepseek = c).catch(e => results.deepseek = `Error: ${e.message}`));
-        if (set.has('grok')) tasks.push(askGrok(messages).then(c => results.grok = c).catch(e => results.grok = `Error: ${e.message}`));
+        for (const model of modelIds) {
+          tasks.push(
+            askModel(messages, model)
+              .then((c) => { results[model] = c; })
+              .catch((e) => { results[model] = `Error: ${e.message}`; })
+          );
+        }
         await Promise.all(tasks);
         const combined = await summarizeCombined(historyArr, query, results, summarizer).catch(e => `Combined error: ${e.message}`);
         return { ...results, combined };
@@ -291,24 +372,64 @@
       async function runPipeline(retriever, summarizer, historyArr, query) {
         const messages = buildMessages(historyArr, query);
         let draft = '';
-        if (retriever === 'deepseek') draft = await askDeepseek(messages).catch(e => `Error: ${e.message}`);
-        else if (retriever === 'grok') draft = await askGrok(messages).catch(e => `Error: ${e.message}`);
-        else draft = await askChatGPT(messages).catch(e => `Error: ${e.message}`);
+        draft = await askModel(messages, retriever).catch(e => `Error: ${e.message}`);
         const sumPrompt = `You are given a user query and a draft answer. Improve it into a final, accurate, concise answer.\n\nUser query:\n${query}\n\nDraft answer:\n${draft}`;
         const sumMsgs = buildMessages(historyArr.filter(m => m.role !== 'system'), sumPrompt);
         let combined = '';
-        if (summarizer === 'deepseek') combined = await askDeepseek(sumMsgs).catch(e => `Error: ${e.message}`);
-        else if (summarizer === 'grok') combined = await askGrok(sumMsgs).catch(e => `Error: ${e.message}`);
-        else combined = await askChatGPT(sumMsgs).catch(e => `Error: ${e.message}`);
+        combined = await askModel(sumMsgs, summarizer).catch(e => `Error: ${e.message}`);
         const results = {};
         results[retriever] = draft;
         return { ...results, combined };
       }
 
-      function renderMessage(role, content) {
+      function createToolbar(buttons) {
+        const bar = document.createElement('div');
+        bar.className = 'toolbar';
+        for (const { label, onClick } of buttons) {
+          const b = document.createElement('button');
+          b.className = 'btn';
+          b.textContent = label;
+          b.onclick = onClick;
+          bar.appendChild(b);
+        }
+        return bar;
+      }
+
+      function extractFirstCodeBlock(text) {
+        const m = text.match(/```(\w+)?\n([\s\S]*?)```/);
+        if (!m) return null;
+        return { lang: (m[1]||'').toLowerCase(), code: m[2]||'' };
+      }
+
+      function previewCode(code, lang) {
+        const html = !lang || lang === 'html' ? code : `<!doctype html><html><head><style>body{margin:16px;}</style></head><body><pre>${escapeHtml(code)}</pre></body></html>`;
+        const wrap = document.createElement('div');
+        wrap.className = 'bubble assistant';
+        wrap.innerHTML = '<div class="small muted">Preview</div>';
+        const iframe = document.createElement('iframe');
+        iframe.className = 'preview-frame';
+        chatEl.appendChild(wrap);
+        wrap.appendChild(iframe);
+        const doc = iframe.contentWindow.document; doc.open(); doc.write(html); doc.close();
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+
+      function renderMessage(role, content, index) {
         const div = document.createElement('div');
         div.className = `bubble ${role}`;
-        div.innerHTML = `<div class="small muted">${role.toUpperCase()}</div><div>${content}</div>`;
+        const safe = escapeHtml(content);
+        div.innerHTML = `<div class="small muted">${role.toUpperCase()}</div><div class="body">${safe}</div>`;
+        const buttons = [];
+        if (role === 'user') {
+          buttons.push({ label: 'Copy', onClick: () => navigator.clipboard.writeText(content) });
+          buttons.push({ label: 'Edit', onClick: () => editPrompt(index) });
+          buttons.push({ label: 'Delete', onClick: () => deletePrompt(index) });
+        } else {
+          buttons.push({ label: 'Copy Answer', onClick: () => navigator.clipboard.writeText(content) });
+          const code = extractFirstCodeBlock(content);
+          if (code) buttons.push({ label: 'Preview', onClick: () => previewCode(code.code, code.lang) });
+        }
+        div.appendChild(createToolbar(buttons));
         chatEl.appendChild(div);
         div.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
@@ -333,24 +454,14 @@
         combinedEl.innerHTML = `<div class="small muted">Combined Answer</div><div>${escapeHtml(text || '')}</div>`;
       }
 
-      function currentProviders() {
-        const list = [];
-        if (cbGrok.checked) list.push('grok');
-        if (cbDeepseek.checked) list.push('deepseek');
-        if (cbChatgpt.checked) list.push('chatgpt');
-        return list;
+      // Sidebar interactions
+      function setSidebarOpen(open) {
+        if (open) { sidebar.classList.add('open'); backdrop.classList.add('show'); }
+        else { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
       }
-
-      function currentMode() {
-        return modePipeline.checked ? 'pipeline' : 'parallel';
-      }
-
-      modeParallel.addEventListener('change', () => {
-        pipelineExtras.style.display = 'none';
-      });
-      modePipeline.addEventListener('change', () => {
-        pipelineExtras.style.display = 'flex';
-      });
+      toggleSidebarBtn.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+      closeSidebarBtn.addEventListener('click', () => setSidebarOpen(false));
+      backdrop.addEventListener('click', () => setSidebarOpen(false));
 
       queryEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -361,37 +472,252 @@
 
       sendBtn.addEventListener('click', send);
 
+      attachInput.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0]; if (!file) return;
+        if (file.type.startsWith('image/')) {
+          const dataUrl = await fileToDataURL(file);
+          pendingImage = dataUrl;
+          const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `Image: ${file.name}`; attachmentsEl.appendChild(chip);
+        } else if (file.type.startsWith('text') || /\.(md|json|txt)$/i.test(file.name)) {
+          pendingTextFile = await file.text();
+          const chip = document.createElement('div'); chip.className='chip'; chip.textContent = `File: ${file.name}`; attachmentsEl.appendChild(chip);
+        } else {
+          alert('Only images or text/md/json files supported');
+        }
+        // reset input to allow re-selecting the same file
+        e.target.value = '';
+      });
+
+      function fileToDataURL(file) { return new Promise((resolve)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.readAsDataURL(file); }); }
+
       async function send() {
         const q = queryEl.value.trim();
         if (!q) return;
         sendBtn.disabled = true;
         queryEl.value = '';
 
-        history.push({ role: 'user', content: q });
-        renderMessage('user', escapeHtml(q));
+        let enriched = q;
+        if (pendingImage) {
+          try { const text = await puter.ai.img2txt(pendingImage); if (text) enriched += `\n\n[Image OCR]:\n${text}`; } catch {}
+        }
+        if (pendingTextFile) { enriched += `\n\n[Attached text]:\n${pendingTextFile.slice(0,20000)}`; }
 
-        const enabledProviders = currentProviders();
-        const mode = currentMode();
+        const userIndex = history.length;
+        const msg = { role: 'user', content: enriched };
+        if (pendingImage) msg.images = [pendingImage];
+        if (pendingTextFile) msg.files = [{ name: 'attachment.txt', type: 'text/plain', content: pendingTextFile.slice(0,20000) }];
+        history.push(msg);
+        renderMessage('user', enriched, userIndex);
+        attachmentsEl.innerHTML=''; pendingImage=null; pendingTextFile=null;
+
+        const mode = 'parallel';
         try {
-          let result;
-          if (mode === 'pipeline') {
-            result = await runPipeline(retrieverSel.value, summarizerSel.value, history, q);
-          } else {
-            result = await runParallel(enabledProviders, history, q, summarizerSel.value);
-          }
-          renderProviders(result);
-          renderCombined(result.combined || '');
+        let result;
+          // Use gpt-4.1 as summarizer by default
+          const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS));
+          result = await runParallel(modelsToUse, history, enriched, 'gpt-4.1');
           const assistantContent = result.combined || '[No combined answer]';
+          const aiIndex = history.length;
           history.push({ role: 'assistant', content: assistantContent });
-          renderMessage('assistant', escapeHtml(assistantContent));
+          renderMessage('assistant', assistantContent, aiIndex);
         } catch (e) {
-          renderCombined(`Error calling providers: ${escapeHtml(e.message || String(e))}`);
+          const msg = `Error calling providers: ${e?.message || String(e)}`;
+          const aiIndex = history.length;
+          history.push({ role: 'assistant', content: msg });
+          renderMessage('assistant', msg, aiIndex);
         } finally {
           sendBtn.disabled = false;
         }
       }
+
+      let activeEditIndex = null;
+      function editPrompt(index) {
+        if (activeEditIndex !== null) return; // prevent multiple edits
+        const original = history[index]; if (!original || original.role !== 'user') return;
+        activeEditIndex = index;
+        const bubbles = [...chatEl.children];
+        const bubble = bubbles[index];
+        if (!bubble) return;
+        const body = bubble.querySelector('.body');
+        const originalText = original.content;
+        body.innerHTML = '';
+        const ta = document.createElement('textarea');
+        ta.style.width = '100%'; ta.style.minHeight = '120px'; ta.style.maxHeight = 'none'; ta.value = originalText;
+        const bar = document.createElement('div'); bar.className = 'toolbar';
+        const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = 'Save';
+        const cancelBtn = document.createElement('button'); cancelBtn.className = 'btn'; cancelBtn.textContent = 'Cancel';
+        bar.appendChild(saveBtn); bar.appendChild(cancelBtn);
+        body.appendChild(ta); body.appendChild(bar);
+        saveBtn.onclick = () => saveEdit(index, ta.value);
+        cancelBtn.onclick = () => cancelEdit(index, originalText);
+      }
+      function cancelEdit(index, originalText) {
+        activeEditIndex = null;
+        const bubbles = [...chatEl.children];
+        const bubble = bubbles[index]; if (!bubble) return;
+        const body = bubble.querySelector('.body');
+        body.textContent = originalText;
+      }
+      function saveEdit(index, newText) {
+        activeEditIndex = null;
+        history[index].content = newText;
+        while (history.length > index + 1) history.pop();
+        chatEl.innerHTML = '';
+        for (let i=0;i<=index;i++) renderMessage(history[i].role, history[i].content, i);
+        (async () => {
+          sendBtn.disabled = true;
+          try {
+            const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS));
+            const result = await runParallel(modelsToUse, history, newText, 'gpt-4.1');
+            const assistantContent = result.combined || '[No combined answer]';
+            const aiIndex = history.length;
+            history.push({ role: 'assistant', content: assistantContent });
+            renderMessage('assistant', assistantContent, aiIndex);
+          } finally { sendBtn.disabled = false; }
+        })();
+      }
+
+      function deletePrompt(index) {
+        if (!history[index] || history[index].role !== 'user') return;
+        history.splice(index);
+        chatEl.innerHTML = '';
+        for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
+      }
+
+      // Conversations: state + UI
+      function saveState() {
+        const state = { conversations, activeConversationId, selectedModels: Array.from(selectedModels || []) };
+        localStorage.setItem('buddy_state', JSON.stringify(state));
+      }
+      function loadState() {
+        try {
+          const raw = localStorage.getItem('buddy_state');
+          if (!raw) throw new Error('no');
+          const st = JSON.parse(raw);
+          conversations = Array.isArray(st.conversations) ? st.conversations : [];
+          activeConversationId = st.activeConversationId || null;
+          selectedModels = new Set(Array.isArray(st.selectedModels) && st.selectedModels.length ? st.selectedModels : ALL_MODELS);
+        } catch {
+          conversations = [];
+          activeConversationId = null;
+          selectedModels = new Set(ALL_MODELS);
+        }
+      }
+      function ensureDefaultConversation() {
+        if (!conversations.length) {
+          const conv = { id: String(Date.now()), name: 'New Chat', history: [] };
+          conversations.push(conv);
+          activeConversationId = conv.id;
+        }
+      }
+      function setActiveConversation(id) {
+        activeConversationId = id;
+        const conv = conversations.find(c => c.id === id);
+        history = conv.history;
+        chatEl.innerHTML = '';
+        for (let i=0;i<history.length;i++) renderMessage(history[i].role, history[i].content, i);
+        saveState();
+        renderConversationList();
+      }
+      function newChat() {
+        const conv = { id: String(Date.now()), name: 'New Chat', history: [] };
+        conversations.unshift(conv);
+        setActiveConversation(conv.id);
+      }
+      function renameConversation(id, newName) {
+        const c = conversations.find(x => x.id === id); if (!c) return;
+        c.name = newName || 'Untitled';
+        saveState();
+        renderConversationList();
+      }
+      function deleteConversation(id) {
+        const idx = conversations.findIndex(x => x.id === id);
+        if (idx === -1) return;
+        conversations.splice(idx,1);
+        if (!conversations.length) {
+          ensureDefaultConversation();
+        }
+        if (activeConversationId === id) {
+          setActiveConversation(conversations[0].id);
+        } else {
+          saveState();
+          renderConversationList();
+        }
+      }
+      async function exportConversationPdf(id) {
+        const c = conversations.find(x => x.id === id); if (!c) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        let y = 36;
+        const lineHeight = 16;
+        doc.setFont('helvetica',''); doc.setFontSize(12);
+        doc.text(`Conversation: ${c.name}`, 36, y); y += 24;
+        for (const m of c.history) {
+          doc.setFont(undefined,'bold'); doc.text(m.role.toUpperCase()+':', 36, y); y += lineHeight; doc.setFont(undefined,'normal');
+          const text = (m.content || '').replace(/\r/g,'');
+          const lines = doc.splitTextToSize(text, pageWidth-72);
+          for (const ln of lines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
+          // Images
+          if (Array.isArray(m.images)) {
+            for (const img of m.images) { if (y > 700) { doc.addPage(); y = 36; } try { doc.addImage(img, 'PNG', 36, y, pageWidth-72, (pageWidth-72)*0.56); y += 12 + (pageWidth-72)*0.56; } catch {} }
+          }
+          // Files (text or 3D names)
+          if (Array.isArray(m.files)) {
+            for (const f of m.files) {
+              const label = f.type && f.type.startsWith('text') ? `File (${f.name}):` : `Attachment: ${f.name}`;
+              if (y > 780) { doc.addPage(); y = 36; }
+              doc.setFont(undefined,'bold'); doc.text(label, 36, y); y += lineHeight; doc.setFont(undefined,'normal');
+              if (f.content && typeof f.content === 'string') {
+                const flines = doc.splitTextToSize(f.content.slice(0,5000), pageWidth-72);
+                for (const ln of flines) { if (y > 780) { doc.addPage(); y = 36; } doc.text(ln, 36, y); y += lineHeight; }
+              }
+            }
+          }
+          y += 8;
+        }
+        doc.save(`${c.name.replace(/[^a-z0-9\-_]+/gi,'_')}.pdf`);
+      }
+      function renderConversationList() {
+        convList.innerHTML = '';
+        for (const c of conversations) {
+          const row = document.createElement('div'); row.className='conv-item';
+          const input = document.createElement('input'); input.className='conv-name'; input.value = c.name; input.title='Click to edit name';
+          input.onchange = () => renameConversation(c.id, input.value);
+          input.onclick = (e) => { if (activeConversationId !== c.id) setActiveConversation(c.id); };
+          const del = document.createElement('button'); del.className='icon'; del.textContent='🗑️'; del.title='Delete'; del.onclick = () => deleteConversation(c.id);
+          const exp = document.createElement('button'); exp.className='icon'; exp.textContent='⬇️'; exp.title='Export PDF'; exp.onclick = () => exportConversationPdf(c.id);
+          row.appendChild(input); row.appendChild(exp); row.appendChild(del);
+          if (activeConversationId === c.id) row.style.borderColor = 'var(--accent)';
+          convList.appendChild(row);
+        }
+      }
+      function renderModelList() {
+        modelList.innerHTML = '';
+        for (const mid of ALL_MODELS) {
+          const row = document.createElement('label'); row.className='model-row';
+          const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = (selectedModels||new Set(ALL_MODELS)).has(mid);
+          cb.onchange = () => { if (!selectedModels) selectedModels = new Set(ALL_MODELS); if (cb.checked) selectedModels.add(mid); else selectedModels.delete(mid); saveState(); };
+          const span = document.createElement('span'); span.textContent = mid;
+          row.appendChild(cb); row.appendChild(span);
+          modelList.appendChild(row);
+        }
+      }
+      btnNewChat.addEventListener('click', newChat);
+      modelsToggle.addEventListener('click', () => {
+        const closed = modelList.classList.contains('hidden');
+        if (closed) { modelList.classList.remove('hidden'); modelsToggle.textContent = '▼'; }
+        else { modelList.classList.add('hidden'); modelsToggle.textContent = '▶'; }
+      });
+
+      // Init
+      loadState();
+      ensureDefaultConversation();
+      history = (conversations.find(c => c.id === activeConversationId) || conversations[0]).history;
+      activeConversationId = (conversations.find(c => c.id === activeConversationId) || conversations[0]).id;
+      renderConversationList();
+      renderModelList();
+      setActiveConversation(activeConversationId);
     </script>
   </body>
   </html>
-
-
