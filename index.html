@@ -380,6 +380,14 @@
       return msgs;
     }
 
+    function isErrorText(text) {
+      return /^Error:/i.test(String(text || '').trim());
+    }
+
+    function isBlank(text) {
+      return !String(text || '').trim();
+    }
+
     function extractText(resp) {
       if (!resp) return '';
       if (typeof resp === 'string') return resp;
@@ -396,12 +404,19 @@
     }
 
     async function askModel(messages, modelId) {
+      // Try object signature first; if that fails, fall back to (messages, options)
       try {
-        const resp = await puter.ai.chat(messages, { model: modelId });
+        const payload = modelId ? { model: modelId, messages } : { messages };
+        const resp = await puter.ai.chat(payload);
         return extractText(resp);
-      } catch (e) {
-        console.error(`Error with model ${modelId}:`, e);
-        return `Error: ${e.message || "Failed to get response"}`;
+      } catch (e1) {
+        try {
+          const resp = await puter.ai.chat(messages, modelId ? { model: modelId } : undefined);
+          return extractText(resp);
+        } catch (e2) {
+          console.error(`Error with model ${modelId}:`, e2);
+          return `Error: ${e2.message || "Failed to get response"}`;
+        }
       }
     }
 
@@ -704,7 +719,21 @@
         const result = await runParallel(modelsToUse, history, enriched, summarizerModel);
         renderProviders(result);
         renderCombined(result.combined);
-        const assistantContent = result.combined || '[No combined answer could be generated]';
+        let assistantContent = result.combined || '';
+        const nonErrorProvider = Object.entries(result)
+          .filter(([k, v]) => k !== 'combined' && typeof v === 'string')
+          .map(([_, v]) => v)
+          .find(v => !isErrorText(v));
+        if (isBlank(assistantContent) || isErrorText(assistantContent)) {
+          if (nonErrorProvider && !isBlank(nonErrorProvider)) {
+            assistantContent = nonErrorProvider;
+          } else {
+            const fallbackMessages = buildMessages(history, '');
+            const fallback = await askModel(fallbackMessages, null);
+            const fallbackText = extractText(fallback);
+            assistantContent = isBlank(fallbackText) || isErrorText(fallbackText) ? '[No combined answer could be generated]' : fallbackText;
+          }
+        }
         const aiIndex = history.length;
         history.push({ role: 'assistant', content: assistantContent });
         renderMessage('assistant', assistantContent, aiIndex);
@@ -788,7 +817,21 @@
           const result = await runParallel(modelsToUse, history, newText, summarizerModel);
           renderProviders(result);
           renderCombined(result.combined);
-          const assistantContent = result.combined || '[No combined answer could be generated]';
+          let assistantContent = result.combined || '';
+          const nonErrorProvider = Object.entries(result)
+            .filter(([k, v]) => k !== 'combined' && typeof v === 'string')
+            .map(([_, v]) => v)
+            .find(v => !isErrorText(v));
+          if (isBlank(assistantContent) || isErrorText(assistantContent)) {
+            if (nonErrorProvider && !isBlank(nonErrorProvider)) {
+              assistantContent = nonErrorProvider;
+            } else {
+              const fallbackMessages = buildMessages(history, '');
+              const fallback = await askModel(fallbackMessages, null);
+              const fallbackText = extractText(fallback);
+              assistantContent = isBlank(fallbackText) || isErrorText(fallbackText) ? '[No combined answer could be generated]' : fallbackText;
+            }
+          }
           const aiIndex = history.length;
           history.push({ role: 'assistant', content: assistantContent });
           renderMessage('assistant', assistantContent, aiIndex);
