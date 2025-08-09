@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Buddy AI</title>
     <script src="https://js.puter.com/v2/"></script>
+    <!-- Add Fira Code font for better code display -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
       :root {
         --bg: #0b0d10;
@@ -140,7 +142,40 @@
       .combined {
         border-left: 3px solid var(--ok);
       }
-      code, pre { white-space: pre-wrap; }
+      code, pre { 
+        white-space: pre-wrap;
+        font-family: 'Fira Code', 'Consolas', monospace;
+      }
+      
+      /* Improved code block styling */
+      .bubble .body pre {
+        background: var(--user-bubble);
+        border-radius: 8px;
+        padding: 12px;
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        font-family: 'Fira Code', 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.4;
+        margin: 8px 0;
+        tab-size: 4;
+      }
+      
+      .bubble .body code {
+        font-family: inherit;
+        color: var(--accent);
+        background: rgba(106, 166, 255, 0.1);
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      
+      /* Syntax highlighting colors */
+      .token.keyword { color: var(--accent-2); }
+      .token.comment { color: var(--muted); }
+      .token.string { color: var(--ok); }
+      .token.function { color: var(--accent); }
+      .token.tag { color: var(--err); }
+      
       a { color: var(--accent); }
     </style>
     <style>
@@ -208,6 +243,28 @@
       .dot.done { background: #3ad29f; }
       .dot.error { background: #ff6b6b; }
       .hidden { display: none; }
+      
+      /* Preview close button */
+      .preview-container {
+        position: relative;
+      }
+      
+      .close-preview {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 100;
+      }
     </style>
   </head>
   <body>
@@ -440,8 +497,16 @@
       function previewCode(code, lang) {
         const html = !lang || lang === 'html' ? code : `<!doctype html><html><head><style>body{margin:16px;}</style></head><body><pre>${escapeHtml(code)}</pre></body></html>`;
         const wrap = document.createElement('div');
-        wrap.className = 'bubble assistant';
+        wrap.className = 'bubble assistant preview-container';
         wrap.innerHTML = '<div class="small muted">Preview</div>';
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-preview';
+        closeBtn.innerHTML = '✕';
+        closeBtn.onclick = () => wrap.remove();
+        wrap.appendChild(closeBtn);
+        
         const iframe = document.createElement('iframe');
         iframe.className = 'preview-frame';
         chatEl.appendChild(wrap);
@@ -454,8 +519,17 @@
         const div = document.createElement('div');
         const label = role === 'assistant' ? 'Buddy' : role.toUpperCase();
         div.className = `bubble ${role}`;
-        const safe = escapeHtml(content);
-        div.innerHTML = `<div class="small muted">${label}</div><div class="body">${safe}</div>`;
+        
+        // Format code blocks with syntax highlighting
+        const formattedContent = content.replace(
+          /```(\w+)?\n([\s\S]*?)```/g, 
+          (match, lang, code) => {
+            return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
+          }
+        );
+        
+        div.innerHTML = `<div class="small muted">${label}</div><div class="body">${escapeHtml(formattedContent)}</div>`;
+        
         const buttons = [];
         if (role === 'user') {
           buttons.push({ title: 'Copy', icon: '📋', onClick: () => navigator.clipboard.writeText(content) });
@@ -762,4 +836,4 @@
       setActiveConversation(activeConversationId);
     </script>
   </body>
-  </html>
+</html>
