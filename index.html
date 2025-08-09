@@ -845,26 +845,7 @@
       <div class="sidebar-section">
         <div class="section-title">AI Models</div>
         <div class="model-list">
-          <div class="conversation-item">
-            <div class="conversation-icon">
-              <i class="fas fa-brain"></i>
-            </div>
-            <div class="conversation-name">GPT-4 Turbo</div>
-          </div>
-          
-          <div class="conversation-item">
-            <div class="conversation-icon">
-              <i class="fas fa-brain"></i>
-            </div>
-            <div class="conversation-name">Claude 3.5 Sonnet</div>
-          </div>
-          
-          <div class="conversation-item">
-            <div class="conversation-icon">
-              <i class="fas fa-brain"></i>
-            </div>
-            <div class="conversation-name">Llama 3.1 70B</div>
-          </div>
+          <!-- Models will be dynamically added here -->
         </div>
       </div>
     </div>
@@ -1012,6 +993,12 @@
       ]
     };
 
+    const modelMap = {
+      gpt4: 'openai/gpt-4o',
+      claude: 'anthropic/claude-3.5-sonnet',
+      llama: 'meta-llama/llama-3.1-70b-instruct'
+    };
+
     // DOM Elements
     const dom = {
       sidebar: document.querySelector('.sidebar'),
@@ -1042,6 +1029,7 @@
       setupEventListeners();
       loadState();
       renderConversations();
+      renderModels();
       await handleAuth();
       if (state.currentConversationId) {
         state.projectRoot = 'BuddyAI_' + state.currentConversationId;
@@ -1163,6 +1151,7 @@
         id: Date.now().toString(),
         name: 'New Conversation',
         createdAt: new Date(),
+        updatedAt: new Date(),
         messages: []
       };
       
@@ -1183,6 +1172,9 @@
 
     // Send message to AI
     async function sendMessage() {
+      if (!state.currentConversationId) {
+        await createNewConversation();
+      }
       const message = dom.messageInput.value.trim();
       if (!message) return;
       
@@ -1206,7 +1198,9 @@
       });
       
       try {
-        const response = await puter.ai.chat(message, { model: 'openai/gpt-4o' });
+        const activeModelId = state.aiModels.find(m => m.isActive)?.id || 'gpt4';
+        const modelName = modelMap[activeModelId];
+        const response = await puter.ai.chat(message, { model: modelName });
         removeMessage(loadingId);
         addMessage({
           id: Date.now().toString(),
@@ -1222,6 +1216,9 @@
 
     // Start build process
     async function startBuild() {
+      if (!state.currentConversationId) {
+        await createNewConversation();
+      }
       const prompt = dom.messageInput.value.trim();
       if (!prompt) return;
       
@@ -1302,7 +1299,7 @@ Output only valid JSON: {
 
         // Coder AI
         addGuideMessage('Generating code...');
-        const coderModel = 'meta-llama/meta-llama-3.1-405b-instruct';
+        const coderModel = 'meta-llama/llama-3.1-70b-instruct';
         for (const file of architectJson.files) {
           addGuideMessage(`Generating code for ${file.path}...`);
           const codePrompt = `Write the complete code for ${file.path} in the project ${deciderJson.summary}. Description: ${file.description}. Use libraries: ${file.libraries.join(', ')}. Make sure it fits with other files.
@@ -1473,8 +1470,33 @@ Output only the code, no explanations.`;
       return null;
     }
 
+    // Render AI models
+    function renderModels() {
+      const modelList = document.querySelector('.model-list');
+      if (!modelList) return;
+      modelList.innerHTML = '';
+      state.aiModels.forEach(model => {
+        const item = document.createElement('div');
+        item.className = `conversation-item ${model.isActive ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="conversation-icon">
+            <i class="fas fa-brain"></i>
+          </div>
+          <div class="conversation-name">${model.name}</div>
+        `;
+        item.addEventListener('click', () => {
+          state.aiModels.forEach(m => m.isActive = false);
+          model.isActive = true;
+          renderModels();
+          saveState();
+        });
+        modelList.appendChild(item);
+      });
+    }
+
     // Render conversation list
     function renderConversations() {
+      state.conversations.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
       dom.conversationList.innerHTML = '';
       
       state.conversations.forEach(conversation => {
