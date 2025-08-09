@@ -277,7 +277,7 @@
       <div class="brand">Buddy AI</div>
     </div>
     <div class="topbar-center">
-      <div class="topbar-note small muted">No login. Refresh clears everything.</div>
+      <div class="topbar-note small muted">No login. No limits. Refresh clears the conversation.</div>
     </div>
     <div class="topbar-right">
       
@@ -530,7 +530,7 @@
         thinkItems[model] = { dot, status };
       }
       
-      btnThinking.classList.remove('hidden');
+      if (btnThinking) btnThinking.classList.remove('hidden');
       
       const ids = (modelIds && modelIds.length) ? modelIds : [];
       for (const model of ids) {
@@ -562,8 +562,10 @@
       try {
         const combined = await summarizeCombined(historyArr, query, results, summarizer);
         setTimeout(() => {
-          if (thinkingPanel.classList.contains('hidden')) {
-            btnThinking.classList.add('hidden');
+          if (thinkingPanel && btnThinking) {
+            if (thinkingPanel.classList.contains('hidden')) {
+              btnThinking.classList.add('hidden');
+            }
           }
         }, 600);
         return { ...results, combined };
@@ -1215,28 +1217,32 @@
 
     btnNewChat.addEventListener('click', newChat);
     
-    btnThinking.addEventListener('click', () => {
-      const open = thinkingPanel.classList.contains('hidden');
-      if (open) { 
-        thinkingPanel.classList.remove('hidden'); 
-      } else { 
-        thinkingPanel.classList.add('hidden'); 
-        if (!thinkingList.querySelector('.dot.pending')) { 
-          btnThinking.classList.add('hidden'); 
-        } 
-      }
-    });
+    if (btnThinking && thinkingPanel) {
+      btnThinking.addEventListener('click', () => {
+        const open = thinkingPanel.classList.contains('hidden');
+        if (open) { 
+          thinkingPanel.classList.remove('hidden'); 
+        } else { 
+          thinkingPanel.classList.add('hidden'); 
+          if (!thinkingList.querySelector('.dot.pending')) { 
+            btnThinking.classList.add('hidden'); 
+          } 
+        }
+      });
+    }
     
-    modelsToggle.addEventListener('click', () => {
-      const closed = modelList.classList.contains('hidden');
-      if (closed) { 
-        modelList.classList.remove('hidden'); 
-        modelsToggle.textContent = '▼'; 
-      } else { 
-        modelList.classList.add('hidden'); 
-        modelsToggle.textContent = '▶'; 
-      }
-    });
+    if (modelsToggle && modelList) {
+      modelsToggle.addEventListener('click', () => {
+        const closed = modelList.classList.contains('hidden');
+        if (closed) { 
+          modelList.classList.remove('hidden'); 
+          modelsToggle.textContent = '▼'; 
+        } else { 
+          modelList.classList.add('hidden'); 
+          modelsToggle.textContent = '▶'; 
+        }
+      });
+    }
 
     // Initialize the app
     (async () => {
