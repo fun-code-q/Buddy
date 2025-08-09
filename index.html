@@ -381,9 +381,17 @@
     }
 
     function extractText(resp) {
+      if (!resp) return '';
       if (typeof resp === 'string') return resp;
-      if (resp?.message?.content) return resp.message.content;
-      if (resp?.text) return resp.text;
+      if (resp.message?.content) return resp.message.content;
+      if (Array.isArray(resp.choices)) {
+        const ch = resp.choices[0];
+        if (ch?.message?.content) return ch.message.content;
+        if (ch?.text) return ch.text;
+      }
+      if (resp.output_text) return resp.output_text;
+      if (resp.text) return resp.text;
+      if (typeof resp.content === 'string') return resp.content;
       try { return JSON.stringify(resp); } catch { return String(resp); }
     }
 
@@ -408,7 +416,12 @@
           { role: 'user', content: prompt },
         ];
         const response = await askModel(msgs, summarizer);
-        return response || "No combined answer could be generated";
+        const respText = typeof response === 'string' ? response : extractText(response);
+        if (respText && !/^Error:/i.test(respText.trim())) return respText;
+        const fallbacks = Object.values(answersByProvider)
+          .map(v => String(v || ''))
+          .filter(v => v && !/^Error:/i.test(v.trim()));
+        return fallbacks[0] || 'No combined answer could be generated';
       } catch (e) {
         console.error("Summarizer error:", e);
         return `Combined error: ${e.message || "Unknown error occurred during summarization"}`;
@@ -416,11 +429,10 @@
     }
 
     const ALL_MODELS = [
-      'gpt-4.1', 'gpt-4o', 'gpt-4.1-nano', 'o3-mini', 'o1-mini',
-      'deepseek-chat', 'deepseek-reasoner',
-      'x-ai/grok-4',
-      'meta-llama/llama-4-maverick', 'meta-llama/llama-3.3-70b-instruct', 'meta-llama/llama-3.1-8b-instruct', 'meta-llama/llama-guard-3-8b',
-      'claude-3-5-sonnet'
+      // Keep a small, widely supported set by default
+      'gpt-4o',
+      'deepseek-chat',
+      'x-ai/grok-4'
     ];
 
     async function runParallel(modelIds, historyArr, query, summarizer) {
@@ -565,22 +577,31 @@
 
     function renderProviders(outputs) {
       providersEl.innerHTML = '';
-      const order = ['grok', 'deepseek', 'chatgpt'];
-      for (const key of order) {
-        if (!(key in outputs)) continue;
+      const entries = Object.entries(outputs).filter(([k]) => k !== 'combined');
+      if (!entries.length) {
+        providersEl.style.display = 'none';
+        return;
+      }
+      providersEl.style.display = 'grid';
+      for (const [key, value] of entries) {
         const card = document.createElement('div');
         card.className = 'provider-card';
         card.innerHTML = `
-          <div class="provider-title">${key.charAt(0).toUpperCase() + key.slice(1)}</div>
-          <div>${escapeHtml(outputs[key] || '')}</div>
+          <div class="provider-title">${escapeHtml(key)}</div>
+          <div>${escapeHtml(String(value || ''))}</div>
         `;
         providersEl.appendChild(card);
       }
     }
 
     function renderCombined(text) {
-      combinedEl.style.display = text ? 'block' : 'none';
-      combinedEl.innerHTML = `<div class="small muted">Combined Answer</div><div>${escapeHtml(text || '')}</div>`;
+      const show = Boolean(text && String(text).trim());
+      combinedEl.style.display = show ? 'block' : 'none';
+      if (show) {
+        combinedEl.innerHTML = `<div class="small muted">Combined Answer</div><div>${escapeHtml(String(text))}</div>`;
+      } else {
+        combinedEl.innerHTML = '';
+      }
     }
 
     function setSidebarOpen(open) {
@@ -678,9 +699,11 @@
       pendingTextFile = null;
 
       try {
-        const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS));
-        const result = await runParallel(modelsToUse, history, enriched, 'gpt-4.1');
-        
+        const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS)).filter(m => ALL_MODELS.includes(m));
+        const summarizerModel = ALL_MODELS.includes('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || 'gpt-4o');
+        const result = await runParallel(modelsToUse, history, enriched, summarizerModel);
+        renderProviders(result);
+        renderCombined(result.combined);
         const assistantContent = result.combined || '[No combined answer could be generated]';
         const aiIndex = history.length;
         history.push({ role: 'assistant', content: assistantContent });
@@ -759,9 +782,12 @@
       
       (async () => {
         sendBtn.disabled = true;
-        try {
-          const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS));
-          const result = await runParallel(modelsToUse, history, newText, 'gpt-4.1');
+      try {
+          const modelsToUse = Array.from(selectedModels || new Set(ALL_MODELS)).filter(m => ALL_MODELS.includes(m));
+          const summarizerModel = ALL_MODELS.includes('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || 'gpt-4o');
+          const result = await runParallel(modelsToUse, history, newText, summarizerModel);
+          renderProviders(result);
+          renderCombined(result.combined);
           const assistantContent = result.combined || '[No combined answer could be generated]';
           const aiIndex = history.length;
           history.push({ role: 'assistant', content: assistantContent });
