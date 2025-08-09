@@ -214,6 +214,7 @@
     .btn-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
     .send { display: inline-flex; align-items: center; justify-content: center; width: var(--control-h); height: var(--control-h); background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; }
     .send:disabled { opacity: .6; cursor: not-allowed; }
+    .send.stop { background: linear-gradient(135deg, var(--err), #cc5555); }
     .preview-frame { width: 100%; height: 420px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
     .spacer { height: 120px; }
     @media (max-width: 640px) { .composer-inner { grid-template-columns: 1fr auto; } .attach { grid-column: 1/-1; } }
@@ -253,6 +254,13 @@
       cursor: pointer;
       z-index: 100;
     }
+    /* Attach disabled */
+    #attachBtn.disabled { opacity: 0.5; pointer-events: none; }
+    
+    /* Inline thinking UI */
+    .thinking-toggle { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; color: var(--text); cursor: pointer; font-size: 12px; display: inline-block; }
+    .thinking-panel-inline { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-top: 6px; }
+    .thinking-panel-inline .thinking-row { font-style: italic; color: var(--accent-2); }
   </style>
 </head>
 <body>
@@ -310,7 +318,7 @@
   <div class="composer">
     <div class="composer-inner">
       <div class="attach">
-        <label class="icon-btn" title="Attach (image or text)"><input id="attachInput" type="file" accept="image/*,.txt,.md,.json,application/json,text/plain"><span>📎</span></label>
+        <label id="attachBtn" class="icon-btn" title="Attach (image or text)"><input id="attachInput" type="file" accept="image/*,.txt,.md,.json,application/json,text/plain"><span>📎</span></label>
       </div>
       <textarea id="query" placeholder="Ask anything..."></textarea>
       <button class="send" id="sendBtn" aria-label="Send">
@@ -617,6 +625,25 @@
       );
       
       div.innerHTML = `<div class="small muted">${label}</div><div class="body">${formattedContent}</div>`;
+
+      // Inline thinking toggle under the latest user bubble
+      if (role === 'user' && index === history.length - 1) {
+        const thinkToggle = document.createElement('button');
+        thinkToggle.className = 'thinking-toggle';
+        thinkToggle.textContent = 'Thinking…';
+        const thinkPanel = document.createElement('div');
+        thinkPanel.className = 'thinking-panel-inline hidden';
+        // Mirror the global thinking list entries
+        const mirror = document.createElement('div');
+        mirror.id = `thinking-inline-${index}`;
+        thinkPanel.appendChild(mirror);
+        thinkToggle.onclick = () => {
+          thinkPanel.classList.toggle('hidden');
+          syncInlineThinking(mirror);
+        };
+        div.appendChild(thinkToggle);
+        div.appendChild(thinkPanel);
+      }
       
       const buttons = [];
       if (role === 'user') {
@@ -631,6 +658,18 @@
       div.appendChild(createToolbar(buttons));
       chatEl.appendChild(div);
       div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function syncInlineThinking(container) {
+      if (!container) return;
+      container.innerHTML = '';
+      const rows = [...thinkingList.children];
+      for (const r of rows) {
+        const copy = r.cloneNode(true);
+        copy.classList.add('thinking-row');
+        // style italics via CSS class already
+        container.appendChild(copy);
+      }
     }
 
     function renderProviders(outputs) {
@@ -738,11 +777,42 @@
       }
     }
 
+    let inFlightAbort = null;
+
+    function setComposeBusy(busy) {
+      if (busy) {
+        sendBtn.classList.add('stop');
+        sendBtn.title = 'Stop';
+        sendBtn.innerHTML = '■';
+        document.getElementById('attachBtn').classList.add('disabled');
+      } else {
+        sendBtn.classList.remove('stop');
+        sendBtn.title = 'Send';
+        sendBtn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 11L21 3L13 21L11 13L3 11Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`;
+        document.getElementById('attachBtn').classList.remove('disabled');
+      }
+    }
+
+    function abortAll() {
+      if (inFlightAbort) inFlightAbort.abort();
+    }
+
+    sendBtn.onclick = () => {
+      if (sendBtn.classList.contains('stop')) {
+        abortAll();
+      } else {
+        send();
+      }
+    };
+
     async function send() {
       const q = queryEl.value.trim();
       if (!q) return;
       
-      sendBtn.disabled = true;
+      setComposeBusy(true);
       queryEl.value = '';
 
       let enriched = q;
@@ -766,6 +836,7 @@
       pendingTextFile = null;
 
       try {
+        inFlightAbort = new AbortController();
         await ensureSupportedModels();
         const baseList = supportedModels.size ? Array.from(supportedModels) : [];
         const modelsToUse = Array.from(selectedModels || new Set(baseList)).filter(m => !supportedModels.size || supportedModels.has(m));
@@ -798,7 +869,8 @@
         history.push({ role: 'assistant', content: errorMsg });
         renderMessage('assistant', errorMsg, aiIndex);
       } finally {
-        sendBtn.disabled = false;
+        inFlightAbort = null;
+        setComposeBusy(false);
       }
     }
 
@@ -864,7 +936,7 @@
       }
       
       (async () => {
-        sendBtn.disabled = true;
+        setComposeBusy(true);
       try {
           await ensureSupportedModels();
           const baseList = supportedModels.size ? Array.from(supportedModels) : [];
@@ -894,7 +966,7 @@
         } catch (e) {
           console.error("Error after edit:", e);
         } finally { 
-          sendBtn.disabled = false; 
+          setComposeBusy(false);
         }
       })();
     }
