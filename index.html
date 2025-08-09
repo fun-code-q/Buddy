@@ -253,6 +253,11 @@
     .preview-container {
       position: relative;
     }
+    .preview-controls { display: flex; gap: 6px; margin: 6px 0 10px; }
+    .preview-device { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+    .preview-container.fullscreen { position: fixed; inset: 0; background: var(--panel); z-index: 1000; padding: 12px; overflow: auto; }
+    .preview-container.fullscreen .preview-frame { height: calc(100% - 48px); }
+    .preview-inner { max-width: 100%; margin: 0 auto; }
     .close-preview {
       position: absolute;
       top: 10px;
@@ -612,7 +617,17 @@
       const wrap = document.createElement('div');
       wrap.className = 'bubble assistant preview-container';
       wrap.innerHTML = '<div class="small muted">Preview</div>';
-      
+
+      const controls = document.createElement('div');
+      controls.className = 'preview-controls';
+      const btnDesktop = document.createElement('button'); btnDesktop.className = 'preview-device'; btnDesktop.textContent = 'Desktop';
+      const btnTablet = document.createElement('button'); btnTablet.className = 'preview-device'; btnTablet.textContent = 'Tablet';
+      const btnMobile = document.createElement('button'); btnMobile.className = 'preview-device'; btnMobile.textContent = 'Mobile';
+      const btnFullscreen = document.createElement('button'); btnFullscreen.className = 'preview-device'; btnFullscreen.textContent = 'Fullscreen';
+      const btnOpenWindow = document.createElement('button'); btnOpenWindow.className = 'preview-device'; btnOpenWindow.textContent = 'Open in new tab';
+      controls.appendChild(btnDesktop); controls.appendChild(btnTablet); controls.appendChild(btnMobile); controls.appendChild(btnFullscreen); controls.appendChild(btnOpenWindow);
+      wrap.appendChild(controls);
+
       const closeBtn = document.createElement('button');
       closeBtn.className = 'close-preview';
       closeBtn.innerHTML = '✕';
@@ -627,6 +642,20 @@
       doc.open(); 
       doc.write(html); 
       doc.close();
+
+      function setWidth(px) { iframe.style.width = px ? px + 'px' : '100%'; iframe.style.maxWidth = '100%'; }
+      btnDesktop.onclick = () => setWidth(1100);
+      btnTablet.onclick = () => setWidth(820);
+      btnMobile.onclick = () => setWidth(420);
+      btnFullscreen.onclick = () => wrap.classList.toggle('fullscreen');
+      btnOpenWindow.onclick = () => {
+        const w = window.open('', '_blank');
+        if (!w) return;
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      };
+
       wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
@@ -1341,7 +1370,8 @@
     }
     
     if (modelsToggle && modelList) {
-      modelsToggle.addEventListener('click', () => {
+      modelsToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
         const closed = modelList.classList.contains('hidden');
         if (closed) { 
           modelList.classList.remove('hidden'); 
@@ -1349,6 +1379,13 @@
         } else { 
           modelList.classList.add('hidden'); 
           modelsToggle.textContent = '▶'; 
+        }
+      });
+      document.addEventListener('click', (e) => {
+        const within = modelList.contains(e.target) || modelsToggle.contains(e.target);
+        if (!within) {
+          modelList.classList.add('hidden');
+          modelsToggle.textContent = '▶';
         }
       });
     }
