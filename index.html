@@ -574,79 +574,79 @@
                 </div>
                 
                 <!-- Column 3: Main Content (Editor/Preview) -->
-                <div id="main-content" class="flex-1 flex flex-col bg-slate-900 overflow-hidden">
-                    <!-- Editor Toolbar -->
-                    <div id="editor-toolbar" class="p-2 border-b border-slate-800 flex justify-between items-center">
-                        <div class="flex items-center space-x-2">
-                            <span id="current-file" class="text-sm font-mono px-2 py-1 bg-slate-800 rounded">index.html</span>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button id="minimize-code" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Minimize Code Editor">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <button id="maximize-code" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Maximize Code Editor">
-                                <i class="fas fa-expand"></i>
-                            </button>
-                            <button id="copy-code" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Copy Code">
-                                <i class="fas fa-copy text-blue-400"></i>
-                            </button>
-                            <button id="undo" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Undo">
-                                <i class="fas fa-undo text-purple-400"></i>
-                            </button>
-                            <button id="redo" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Redo">
-                                <i class="fas fa-redo text-purple-400"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Code Editor -->
-                    <div id="code-editor-container" class="flex-1 overflow-hidden">
-                        <div class="code-editor h-full">
-                            <div class="editor-header">
-                                <div class="flex space-x-2">
-                                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                                </div>
-                                <div class="text-xs mono text-slate-400">index.html</div>
-                            </div>
-                            <pre id="code-editor" class="editor-content mono" contenteditable="true"><!-- Code will be inserted here --></pre>
-                        </div>
-                    </div>
-                    
-                    
+<div id="main-content" class="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+    <!-- Editor Toolbar -->
+    <div id="editor-toolbar" class="p-2 border-b border-slate-800 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <span id="current-file" class="text-sm font-mono px-2 py-1 bg-slate-800 rounded">index.html</span>
+        </div>
+        <div class="flex space-x-2">
+            <button id="minimize-code" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Minimize Code Editor">
+                <i class="fas fa-minus"></i>
+            </button>
+            <button id="maximize-code" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Maximize Code Editor">
+                <i class="fas fa-expand"></i>
+            </button>
+            <button id="copy-code" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Copy Code">
+                <i class="fas fa-copy text-blue-400"></i>
+            </button>
+            <button id="undo" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Undo">
+                <i class="fas fa-undo text-purple-400"></i>
+            </button>
+            <button id="redo" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Redo">
+                <i class="fas fa-redo text-purple-400"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Code Editor (shown by default) -->
+    <div id="code-editor-container" class="flex-1 overflow-hidden">
+        <div class="code-editor h-full">
+            <div class="editor-header">
+                <div class="flex space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
-                <!-- Preview Container -->
-                    <div id="preview-container" class="hidden flex-1 flex-col bg-white overflow-hidden">
-                        <div class="p-2 border-b border-slate-200 flex justify-between items-center bg-slate-100">
-                            <div class="flex space-x-2">
-                                <button class="device-btn active px-2 py-1 text-xs rounded bg-white" data-device="desktop">
-                                    <i class="fas fa-desktop mr-1 device-icon"></i>
-                                </button>
-                                <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="tablet">
-                                    <i class="fas fa-tablet-alt mr-1 device-icon"></i>
-                                </button>
-                                <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="mobile">
-                                    <i class="fas fa-mobile-alt mr-1 device-icon"></i>
-                                </button>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button id="minimize-preview" class="p-1 rounded hover:bg-slate-200 transition-colors" title="Minimize Preview">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                                <button id="maximize-preview" class="p-1 rounded hover:bg-slate-200 transition-colors" title="Maximize Preview">
-                                    <i class="fas fa-expand"></i>
-                                </button>
-                                <button id="refresh-preview" class="p-1 rounded hover:bg-slate-200 transition-colors">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="preview-content" id="preview-wrapper">
-                            <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
-                        </div>
-                    </div>
+                <div class="text-xs mono text-slate-400">index.html</div>
             </div>
+            <pre id="code-editor" class="editor-content mono" contenteditable="true"><!-- Code will be inserted here --></pre>
+        </div>
+    </div>
+
+    <!-- Preview Container (hidden until toggled) -->
+    <div id="preview-container" class="hidden flex-1 flex-col bg-white overflow-hidden">
+        <div class="p-2 border-b border-slate-200 flex justify-between items-center bg-slate-100">
+            <div class="flex space-x-2">
+                <button class="device-btn active px-2 py-1 text-xs rounded bg-white" data-device="desktop">
+                    <i class="fas fa-desktop mr-1 device-icon"></i>
+                </button>
+                <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="tablet">
+                    <i class="fas fa-tablet-alt mr-1 device-icon"></i>
+                </button>
+                <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="mobile">
+                    <i class="fas fa-mobile-alt mr-1 device-icon"></i>
+                </button>
+            </div>
+            <div class="flex space-x-2">
+                <button id="minimize-preview" class="p-1 rounded hover:bg-slate-200 transition-colors" title="Minimize Preview">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button id="maximize-preview" class="p-1 rounded hover:bg-slate-200 transition-colors" title="Maximize Preview">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button id="refresh-preview" class="p-1 rounded hover:bg-slate-200 transition-colors">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="preview-content" id="preview-wrapper">
+            <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg"
+                srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
+        </div>
+    </div>
+</div>
+
             
             <!-- Mobile Chat Drawer -->
             <div id="mobile-chat-drawer" class="fixed top-16 left-0 right-0 bg-slate-900 border-b border-slate-800 z-40 shadow-xl hidden md:hidden">
