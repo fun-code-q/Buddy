@@ -371,6 +371,39 @@
             left: 0;
             right: 0;
         }
+        
+        /* NEW STYLES FOR THE REQUESTED CHANGES */
+        
+        /* Darker device icons */
+        .device-btn i {
+            color: #4b5563 !important; /* Dark gray color */
+        }
+        
+        .device-btn.active i {
+            color: #3b82f6 !important; /* Blue for active state */
+        }
+        
+        /* Hamburger menu for desktop */
+        #desktop-menu-toggle {
+            display: none;
+        }
+        
+        @media (min-width: 769px) {
+            #desktop-menu-toggle {
+                display: inline-flex;
+            }
+        }
+        
+        /* Minimize/maximize buttons */
+        .minimize-btn, .maximize-btn {
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            margin-left: 0.25rem;
+        }
+        
+        .minimize-btn:hover, .maximize-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -424,7 +457,11 @@
                     <button id="menu-toggle" class="p-2 rounded-lg hover:bg-slate-700 transition-colors md:hidden">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <div class="hidden md:flex items-center space-x-2">
+                    <!-- Added hamburger menu for desktop -->
+                    <button id="desktop-menu-toggle" class="p-2 rounded-lg hover:bg-slate-700 transition-colors hidden md:inline-flex">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="flex items-center space-x-2">
                         <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
                             <i class="fas fa-robot text-white"></i>
                         </div>
@@ -560,6 +597,13 @@
                             <button id="redo" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Redo">
                                 <i class="fas fa-redo text-purple-400"></i>
                             </button>
+                            <!-- Added minimize/maximize for code editor -->
+                            <button id="minimize-code" class="minimize-btn p-1 rounded hover:bg-slate-800 transition-colors" title="Minimize Code Editor">
+                                <i class="fas fa-minus text-slate-400"></i>
+                            </button>
+                            <button id="maximize-code" class="maximize-btn p-1 rounded hover:bg-slate-800 transition-colors" title="Maximize Code Editor">
+                                <i class="fas fa-up-right-and-down-left-from-center text-slate-400"></i>
+                            </button>
                         </div>
                     </div>
                     
@@ -585,18 +629,27 @@
                         <div class="p-2 border-b border-slate-200 flex justify-between items-center bg-slate-100">
                             <div class="flex space-x-2">
                                 <button class="device-btn active px-2 py-1 text-xs rounded bg-white" data-device="desktop">
-                                    <i class="fas fa-desktop mr-1"></i>
+                                    <i class="fas fa-desktop mr-1 text-gray-600"></i> Desktop
                                 </button>
                                 <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="tablet">
-                                    <i class="fas fa-tablet-alt mr-1"></i>
+                                    <i class="fas fa-tablet-alt mr-1 text-gray-600"></i> Tablet
                                 </button>
                                 <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="mobile">
-                                    <i class="fas fa-mobile-alt mr-1"></i>
+                                    <i class="fas fa-mobile-alt mr-1 text-gray-600"></i> Mobile
                                 </button>
                             </div>
-                            <button id="refresh-preview" class="p-1 rounded hover:bg-slate-200 transition-colors">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
+                            <div class="flex space-x-2">
+                                <!-- Added minimize/maximize for preview -->
+                                <button id="minimize-preview" class="minimize-btn p-1 rounded hover:bg-slate-200 transition-colors" title="Minimize Preview">
+                                    <i class="fas fa-minus text-gray-600"></i>
+                                </button>
+                                <button id="maximize-preview" class="maximize-btn p-1 rounded hover:bg-slate-200 transition-colors" title="Maximize Preview">
+                                    <i class="fas fa-up-right-and-down-left-from-center text-gray-600"></i>
+                                </button>
+                                <button id="refresh-preview" class="p-1 rounded hover:bg-slate-200 transition-colors">
+                                    <i class="fas fa-sync-alt text-gray-600"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="preview-content" id="preview-wrapper">
                             <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
@@ -765,7 +818,12 @@
             codeHistory: [],
             undoStack: [],
             redoStack: [],
-            thinkingTimers: {} // Track thinking timers for AI responses
+            thinkingTimers: {}, // Track thinking timers for AI responses
+            // NEW: State for editor and preview panels
+            codeEditorCollapsed: false,
+            codeEditorExpanded: false,
+            previewCollapsed: false,
+            previewExpanded: false
         };
 
         // UI flags
@@ -783,6 +841,7 @@
         const sendPrompt = document.getElementById('send-prompt');
         const promptSuggestions = document.querySelectorAll('.prompt-suggestion');
         const menuToggle = document.getElementById('menu-toggle');
+        const desktopMenuToggle = document.getElementById('desktop-menu-toggle');
         const menuDropdown = document.getElementById('menu-dropdown');
         const projectNameInput = document.getElementById('project-name-input');
         const currentProjectNameMenu = document.getElementById('current-project-name-menu');
@@ -810,9 +869,13 @@
         const copyCode = document.getElementById('copy-code');
         const undo = document.getElementById('undo');
         const redo = document.getElementById('redo');
+        const minimizeCode = document.getElementById('minimize-code');
+        const maximizeCode = document.getElementById('maximize-code');
         const codeEditorContainer = document.getElementById('code-editor-container');
         const codeEditor = document.getElementById('code-editor');
         const previewContainer = document.getElementById('preview-container');
+        const minimizePreview = document.getElementById('minimize-preview');
+        const maximizePreview = document.getElementById('maximize-preview');
         const deviceBtns = document.querySelectorAll('.device-btn');
         const refreshPreview = document.getElementById('refresh-preview');
         const websitePreview = document.getElementById('website-preview');
@@ -939,6 +1002,12 @@
                 menuDropdown.classList.toggle('hidden');
             });
             
+            // Desktop menu toggle
+            desktopMenuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menuDropdown.classList.toggle('hidden');
+            });
+            
             // Project name input
             if (projectNameInput) {
                 projectNameInput.addEventListener('change', (e) => {
@@ -1034,6 +1103,21 @@
             undo.addEventListener('click', undoCodeEdit);
             redo.addEventListener('click', redoCodeEdit);
             
+            // NEW: Minimize/maximize code editor
+            minimizeCode.addEventListener('click', () => {
+                state.codeEditorCollapsed = true;
+                state.codeEditorExpanded = false;
+                applyPanelStates();
+            });
+            
+            maximizeCode.addEventListener('click', () => {
+                state.codeEditorExpanded = !state.codeEditorExpanded;
+                state.codeEditorCollapsed = false;
+                // If code editor expands, un-expand preview
+                if (state.codeEditorExpanded) state.previewExpanded = false;
+                applyPanelStates();
+            });
+            
             codeEditor.addEventListener('input', (e) => {
                 state.files[`/${state.currentFile}`].content = e.target.textContent;
                 updatePreview();
@@ -1052,6 +1136,21 @@
             });
             
             refreshPreview.addEventListener('click', updatePreview);
+            
+            // NEW: Minimize/maximize preview
+            minimizePreview.addEventListener('click', () => {
+                state.previewCollapsed = true;
+                state.previewExpanded = false;
+                applyPanelStates();
+            });
+            
+            maximizePreview.addEventListener('click', () => {
+                state.previewExpanded = !state.previewExpanded;
+                state.previewCollapsed = false;
+                // If preview expands, un-expand code editor
+                if (state.previewExpanded) state.codeEditorExpanded = false;
+                applyPanelStates();
+            });
             
             // Mobile drawers
             openMobileChat.addEventListener('click', () => {
@@ -1105,7 +1204,7 @@
             
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
-                if (!menuToggle.contains(e.target) && !menuDropdown.contains(e.target)) {
+                if (!menuToggle.contains(e.target) && !desktopMenuToggle.contains(e.target) && !menuDropdown.contains(e.target)) {
                     menuDropdown.classList.add('hidden');
                 }
             });
@@ -1212,7 +1311,7 @@
             if (desktopMessage) {
                 const contentElement = desktopMessage.querySelector('.message-content');
                 if (contentElement) {
-                    contentElement.innerHTML = formatMessageContent(content);
+                    contentElement.innerHTML = formatMessageContent(content, 'ai');
                 }
             }
             
@@ -1221,7 +1320,7 @@
             if (mobileMessage) {
                 const contentElement = mobileMessage.querySelector('.message-content');
                 if (contentElement) {
-                    contentElement.innerHTML = formatMessageContent(content);
+                    contentElement.innerHTML = formatMessageContent(content, 'ai');
                 }
             }
             
@@ -1701,6 +1800,10 @@ main {
             margin-bottom: 1rem;
         }
 
+        .feature p {
+            color: #64748b;
+        }
+
         footer {
             text-align: center;
             padding: 2rem;
@@ -1963,7 +2066,7 @@ main {
             const messageHtml = `
                 <div id="message-${message.id}" class="chat-bubble rounded-lg p-3 ${isUser ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
                     <div class="font-medium ${isUser ? 'text-blue-400' : 'text-emerald-400'}">${isUser ? 'You' : 'Buddy AI'}</div>
-                    <div class="mt-1 message-content">${formatMessageContent(message.content)}</div>
+                    <div class="mt-1 message-content">${formatMessageContent(message.content, message.role)}</div>
                     <div class="chat-bubble-actions">
                         ${isUser ? `
                             <button class="action-btn edit-chat" data-id="${message.id}" title="Edit">
@@ -1993,7 +2096,7 @@ main {
             const mobileMessageHtml = `
                 <div id="mobile-message-${message.id}" class="chat-bubble rounded-lg p-3 ${isUser ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
                     <div class="font-medium ${isUser ? 'text-blue-400' : 'text-emerald-400'}">${isUser ? 'You' : 'Buddy AI'}</div>
-                    <div class="mt-1 message-content">${formatMessageContent(message.content)}</div>
+                    <div class="mt-1 message-content">${formatMessageContent(message.content, message.role)}</div>
                     <div class="chat-bubble-actions">
                         ${isUser ? `
                             <button class="action-btn edit-chat" data-id="${message.id}" title="Edit">
@@ -2045,7 +2148,37 @@ main {
         }
 
         // Format message content with code highlighting
-        function formatMessageContent(content) {
+        function formatMessageContent(content, role) {
+            // For AI messages, skip code blocks and format text
+            if (role === 'ai') {
+                // Remove code blocks
+                let textOnly = content.replace(/```html[\s\S]*?```/g, '');
+                textOnly = textOnly.replace(/```css[\s\S]*?```/g, '');
+                textOnly = textOnly.replace(/```javascript[\s\S]*?```/g, '');
+                textOnly = textOnly.replace(/```[\s\S]*?```/g, '');
+                textOnly = textOnly.replace(/<!DOCTYPE html>[\s\S]*?<\/html>/g, '');
+                
+                // Format numbered lists (## to numbered list)
+                let counter = 1;
+                const lines = textOnly.split('\n');
+                let formattedText = '';
+                
+                for (const line of lines) {
+                    if (line.startsWith('## ')) {
+                        formattedText += `${counter}. ${line.substring(3)}<br>`;
+                        counter++;
+                    } else {
+                        formattedText += line + '<br>';
+                    }
+                }
+                
+                // Make text between ** bold
+                formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                
+                return formattedText;
+            }
+            
+            // For user messages, use the original formatting
             // Simple code formatting - in a real app you'd use a proper highlighting library
             if (!content) return '';
             let safe = '';
@@ -2854,6 +2987,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 filePanel.classList.remove('panel-collapsed');
             } else {
                 filePanel.classList.remove('panel-collapsed', 'panel-expanded');
+            }
+            
+            // NEW: Code editor panel
+            if (state.codeEditorCollapsed) {
+                codeEditorContainer.classList.add('panel-collapsed');
+            } else if (state.codeEditorExpanded) {
+                codeEditorContainer.classList.add('panel-expanded');
+                codeEditorContainer.classList.remove('panel-collapsed');
+            } else {
+                codeEditorContainer.classList.remove('panel-collapsed', 'panel-expanded');
+            }
+            
+            // NEW: Preview panel
+            if (state.previewCollapsed) {
+                previewContainer.classList.add('panel-collapsed');
+            } else if (state.previewExpanded) {
+                previewContainer.classList.add('panel-expanded');
+                previewContainer.classList.remove('panel-collapsed');
+            } else {
+                previewContainer.classList.remove('panel-collapsed', 'panel-expanded');
             }
         }
 
