@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- Add Puter.js SDK -->
+    <!-- Add Puter.js script -->
     <script src="https://js.puter.com/v2/"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
@@ -62,6 +62,9 @@
             background-color: #0f172a;
             border-radius: 0.5rem;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         
         .editor-header {
@@ -70,12 +73,14 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-shrink: 0;
         }
         
         .editor-content {
             font-family: 'Fira Code', monospace;
             padding: 1rem;
-            min-height: 300px;
+            flex: 1;
+            overflow-y: auto;
             outline: none;
             white-space: pre-wrap;
             tab-size: 2;
@@ -273,33 +278,6 @@
         .file-item:hover .file-edit-icon {
             opacity: 1;
         }
-        
-        /* Puter Auth Button */
-        .puter-auth-btn {
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .puter-auth-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -314,19 +292,9 @@
                     </div>
                     <h1 class="text-xl font-bold">Buddy AI</h1>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-700 transition-colors">
-                        <i class="fas fa-moon text-yellow-300"></i>
-                    </button>
-                    <button id="puter-auth-btn" class="puter-auth-btn hidden">
-                        <i class="fas fa-user"></i>
-                        <span>Sign in with Puter</span>
-                    </button>
-                    <div id="user-info" class="hidden flex items-center space-x-2">
-                        <img id="user-avatar" class="user-avatar" src="" alt="User Avatar">
-                        <span id="username" class="text-sm"></span>
-                    </div>
-                </div>
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-moon text-yellow-300"></i>
+                </button>
             </header>
             
             <main class="w-full max-w-2xl mx-auto mt-16 mb-8 px-4 flex flex-col items-center">
@@ -375,12 +343,6 @@
                         <button id="new-project-btn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700 transition-colors">
                             <i class="fas fa-plus mr-2"></i> Create New Project
                         </button>
-                        <button id="save-project-cloud" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700 transition-colors">
-                            <i class="fas fa-cloud-upload-alt mr-2"></i> Save to Puter Cloud
-                        </button>
-                        <button id="load-project-cloud" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700 transition-colors">
-                            <i class="fas fa-cloud-download-alt mr-2"></i> Load from Cloud
-                        </button>
                         <button id="delete-project-btn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700 transition-colors text-red-400">
                             <i class="fas fa-trash mr-2"></i> Delete Project
                         </button>
@@ -402,14 +364,6 @@
                     <button id="theme-toggle-builder" class="p-2 rounded-lg hover:bg-slate-700 transition-colors hidden sm:block">
                         <i class="fas fa-moon text-yellow-300"></i>
                     </button>
-                    <button id="puter-auth-btn-builder" class="puter-auth-btn hidden">
-                        <i class="fas fa-user"></i>
-                        <span>Sign in with Puter</span>
-                    </button>
-                    <div id="user-info-builder" class="hidden flex items-center space-x-2">
-                        <img id="user-avatar-builder" class="user-avatar" src="" alt="User Avatar">
-                        <span id="username-builder" class="text-sm"></span>
-                    </div>
                 </div>
             </header>
             
@@ -497,7 +451,7 @@
                     </div>
                     
                     <!-- Code Editor -->
-                    <div id="code-editor-container" class="flex-1 overflow-auto scrollable-section">
+                    <div id="code-editor-container" class="flex-1 overflow-hidden scrollable-section">
                         <div class="code-editor h-full">
                             <div class="editor-header">
                                 <div class="flex space-x-2">
@@ -512,7 +466,7 @@
                     </div>
                     
                     <!-- Preview Container -->
-                    <div id="preview-container" class="hidden flex-1 overflow-auto bg-white scrollable-section">
+                    <div id="preview-container" class="hidden flex-1 flex-col bg-white overflow-hidden">
                         <div class="p-2 border-b border-slate-200 flex justify-between items-center bg-slate-100">
                             <div class="flex space-x-2">
                                 <button class="device-btn active px-2 py-1 text-xs rounded bg-white" data-device="desktop">
@@ -529,8 +483,8 @@
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
-                        <div id="preview-wrapper" class="w-full h-full flex justify-center p-4">
-                            <div id="preview-content" class="w-full max-w-4xl">
+                        <div id="preview-wrapper" class="flex-1 overflow-auto p-4">
+                            <div id="preview-content" class="w-full h-full flex justify-center">
                                 <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
                             </div>
                         </div>
@@ -658,30 +612,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Cloud Projects Modal -->
-        <div id="cloud-projects-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-slate-800 rounded-lg p-6 max-w-2xl w-full border border-slate-700">
-                <h3 class="text-xl font-bold mb-4">Your Cloud Projects</h3>
-                <div class="mb-4 max-h-96 overflow-y-auto">
-                    <table class="w-full text-sm text-left text-slate-300">
-                        <thead class="text-xs text-slate-400 uppercase bg-slate-700">
-                            <tr>
-                                <th class="px-4 py-2">Project Name</th>
-                                <th class="px-4 py-2">Last Modified</th>
-                                <th class="px-4 py-2">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cloud-projects-list">
-                            <!-- Cloud projects will be listed here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button id="cloud-modal-close" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">Close</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -723,8 +653,7 @@
             codeHistory: [],
             undoStack: [],
             redoStack: [],
-            thinkingTimers: {}, // Track thinking timers for AI responses
-            user: null // Track Puter user authentication
+            thinkingTimers: {} // Track thinking timers for AI responses
         };
 
         // DOM Elements
@@ -797,27 +726,11 @@
         const renameInput = document.getElementById('rename-input');
         const renameModalCancel = document.getElementById('rename-modal-cancel');
         const renameModalConfirm = document.getElementById('rename-modal-confirm');
-        const puterAuthBtn = document.getElementById('puter-auth-btn');
-        const puterAuthBtnBuilder = document.getElementById('puter-auth-btn-builder');
-        const userInfo = document.getElementById('user-info');
-        const userInfoBuilder = document.getElementById('user-info-builder');
-        const userAvatar = document.getElementById('user-avatar');
-        const userAvatarBuilder = document.getElementById('user-avatar-builder');
-        const username = document.getElementById('username');
-        const usernameBuilder = document.getElementById('username-builder');
-        const saveProjectCloud = document.getElementById('save-project-cloud');
-        const loadProjectCloud = document.getElementById('load-project-cloud');
-        const cloudProjectsModal = document.getElementById('cloud-projects-modal');
-        const cloudProjectsList = document.getElementById('cloud-projects-list');
-        const cloudModalClose = document.getElementById('cloud-modal-close');
 
         // Initialize the application
         function init() {
             // Set up event listeners
             setupEventListeners();
-            
-            // Initialize Puter.js
-            initPuter();
             
             // Load saved state from localStorage if available
             loadState();
@@ -826,231 +739,6 @@
             renderFileTree();
             updateCodeEditor();
             updatePreview();
-        }
-
-        // Initialize Puter.js
-        async function initPuter() {
-            try {
-                // Check if user is already logged in
-                const user = await puter.auth.getUser();
-                if (user) {
-                    state.user = user;
-                    updateAuthUI();
-                } else {
-                    // Show auth buttons
-                    puterAuthBtn.classList.remove('hidden');
-                    puterAuthBtnBuilder.classList.remove('hidden');
-                }
-                
-                // Set up auth event listeners
-                puterAuthBtn.addEventListener('click', handlePuterAuth);
-                puterAuthBtnBuilder.addEventListener('click', handlePuterAuth);
-                
-                // Set up cloud project buttons
-                saveProjectCloud.addEventListener('click', saveProjectToCloud);
-                loadProjectCloud.addEventListener('click', loadProjectFromCloud);
-                cloudModalClose.addEventListener('click', () => {
-                    cloudProjectsModal.classList.add('hidden');
-                });
-            } catch (error) {
-                console.error('Error initializing Puter:', error);
-                showNotification('Error connecting to Puter services', 'error');
-            }
-        }
-
-        // Handle Puter authentication
-        async function handlePuterAuth() {
-            try {
-                // Open Puter auth dialog
-                const user = await puter.auth.signInWithPopup();
-                if (user) {
-                    state.user = user;
-                    updateAuthUI();
-                    showNotification('Successfully signed in with Puter');
-                }
-            } catch (error) {
-                console.error('Puter auth error:', error);
-                showNotification('Authentication failed', 'error');
-            }
-        }
-
-        // Update UI based on authentication status
-        function updateAuthUI() {
-            if (state.user) {
-                // Hide auth buttons
-                puterAuthBtn.classList.add('hidden');
-                puterAuthBtnBuilder.classList.add('hidden');
-                
-                // Show user info
-                userInfo.classList.remove('hidden');
-                userInfoBuilder.classList.remove('hidden');
-                
-                // Set user info
-                username.textContent = state.user.username;
-                usernameBuilder.textContent = state.user.username;
-                
-                // Set avatar if available
-                if (state.user.avatar_url) {
-                    userAvatar.src = state.user.avatar_url;
-                    userAvatarBuilder.src = state.user.avatar_url;
-                }
-            } else {
-                // Show auth buttons
-                puterAuthBtn.classList.remove('hidden');
-                puterAuthBtnBuilder.classList.remove('hidden');
-                
-                // Hide user info
-                userInfo.classList.add('hidden');
-                userInfoBuilder.classList.add('hidden');
-            }
-        }
-
-        // Save project to Puter cloud
-        async function saveProjectToCloud() {
-            if (!state.user) {
-                showNotification('Please sign in to save projects to cloud', 'error');
-                return;
-            }
-            
-            try {
-                // Create a unique filename with timestamp
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const filename = `buddy-ai-project-${timestamp}.json`;
-                
-                // Convert project to JSON
-                const projectData = JSON.stringify({
-                    projectName: state.projectName,
-                    files: state.files,
-                    chatHistory: state.chatHistory
-                });
-                
-                // Save to Puter storage
-                await puter.fs.write(filename, projectData);
-                
-                showNotification('Project saved to cloud successfully');
-            } catch (error) {
-                console.error('Error saving project to cloud:', error);
-                showNotification('Failed to save project to cloud', 'error');
-            }
-        }
-
-        // Load project from Puter cloud
-        async function loadProjectFromCloud() {
-            if (!state.user) {
-                showNotification('Please sign in to load projects from cloud', 'error');
-                return;
-            }
-            
-            try {
-                // List all project files
-                const files = await puter.fs.list();
-                const projectFiles = files.filter(file => file.name.startsWith('buddy-ai-project-'));
-                
-                if (projectFiles.length === 0) {
-                    showNotification('No projects found in cloud', 'info');
-                    return;
-                }
-                
-                // Display projects in modal
-                cloudProjectsList.innerHTML = '';
-                projectFiles.forEach(file => {
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-slate-700 hover:bg-slate-700';
-                    
-                    const modifiedDate = new Date(file.modified_at).toLocaleString();
-                    
-                    row.innerHTML = `
-                        <td class="px-4 py-2 font-medium">${file.name}</td>
-                        <td class="px-4 py-2">${modifiedDate}</td>
-                        <td class="px-4 py-2">
-                            <button class="load-cloud-project px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 transition-colors text-xs" data-filename="${file.name}">
-                                Load
-                            </button>
-                            <button class="delete-cloud-project px-2 py-1 rounded bg-red-600 hover:bg-red-700 transition-colors text-xs ml-2" data-filename="${file.name}">
-                                Delete
-                            </button>
-                        </td>
-                    `;
-                    
-                    cloudProjectsList.appendChild(row);
-                });
-                
-                // Show modal
-                cloudProjectsModal.classList.remove('hidden');
-                
-                // Add event listeners to buttons
-                document.querySelectorAll('.load-cloud-project').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        const filename = e.target.dataset.filename;
-                        await loadCloudProject(filename);
-                        cloudProjectsModal.classList.add('hidden');
-                    });
-                });
-                
-                document.querySelectorAll('.delete-cloud-project').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        const filename = e.target.dataset.filename;
-                        await deleteCloudProject(filename);
-                        // Refresh the list
-                        loadProjectFromCloud();
-                    });
-                });
-                
-            } catch (error) {
-                console.error('Error loading projects from cloud:', error);
-                showNotification('Failed to load projects from cloud', 'error');
-            }
-        }
-
-        // Load a specific cloud project
-        async function loadCloudProject(filename) {
-            try {
-                // Read the project file
-                const projectData = await puter.fs.read(filename);
-                const project = JSON.parse(projectData);
-                
-                // Update state
-                state.projectName = project.projectName;
-                state.files = project.files;
-                state.chatHistory = project.chatHistory;
-                
-                // Update UI
-                projectNameInput.value = state.projectName;
-                currentProjectNameMenu.textContent = state.projectName;
-                
-                // Render chat history
-                chatMessages.innerHTML = '';
-                mobileChatMessages.innerHTML = '';
-                state.chatHistory.forEach(msg => renderChatMessage(msg));
-                
-                // Render file tree
-                renderFileTree();
-                
-                // Update code editor
-                updateCodeEditor();
-                
-                // Update preview
-                updatePreview();
-                
-                // Save state to localStorage
-                saveState();
-                
-                showNotification('Project loaded from cloud successfully');
-            } catch (error) {
-                console.error('Error loading cloud project:', error);
-                showNotification('Failed to load project from cloud', 'error');
-            }
-        }
-
-        // Delete a cloud project
-        async function deleteCloudProject(filename) {
-            try {
-                await puter.fs.delete(filename);
-                showNotification('Project deleted from cloud successfully');
-            } catch (error) {
-                console.error('Error deleting cloud project:', error);
-                showNotification('Failed to delete project from cloud', 'error');
-            }
         }
 
         // Set up event listeners
@@ -1254,36 +942,41 @@
             addChatMessage('user', prompt);
             
             // Use Puter AI to generate response
-            generateWithPuterJS(enhancedPrompt);
+            generateWithPuter(enhancedPrompt);
             
             // Clear input
             promptInput.value = '';
         }
 
-        // Generate with Puter AI using Puter.js SDK
-        async function generateWithPuterJS(prompt) {
+        // Generate with Puter AI
+        async function generateWithPuter(prompt) {
             // Show thinking animation
             const thinkingId = addThinkingAnimation();
             
             try {
-                // Call Puter AI API using the SDK
-                const response = await puter.ai.chat(
-                    prompt,
-                    { model: 'claude-sonnet-4', stream: true }
-                );
+                // Call Puter AI API with Claude Sonnet 4
+                const response = await puter.ai.chat(prompt, { 
+                    model: 'claude-sonnet-4', 
+                    stream: true 
+                });
+                
+                let fullResponse = '';
+                const messageId = addChatMessage('ai', '');
                 
                 // Remove thinking animation
                 removeThinkingAnimation(thinkingId);
                 
-                // Add AI message to chat with streaming
-                const messageId = addChatMessage('ai', '');
-                
-                // Stream the response
-                let fullResponse = '';
+                // Process streaming response
                 for await (const part of response) {
-                    if (part?.text) {
+                    if (part.text) {
                         fullResponse += part.text;
-                        updateChatMessage(messageId, fullResponse);
+                        
+                        // Update the message in state
+                        const messageIndex = state.chatHistory.findIndex(m => m.id === messageId);
+                        if (messageIndex !== -1) {
+                            state.chatHistory[messageIndex].content = fullResponse;
+                            updateMessageElement(messageId, fullResponse);
+                        }
                     }
                 }
                 
@@ -1305,6 +998,31 @@
                 // Use demo response as fallback
                 useDemoResponse(prompt);
             }
+        }
+
+        // Update message element without re-rendering entire chat
+        function updateMessageElement(messageId, content) {
+            // Update desktop chat
+            const desktopMessage = document.getElementById(`message-${messageId}`);
+            if (desktopMessage) {
+                const contentElement = desktopMessage.querySelector('.message-content');
+                if (contentElement) {
+                    contentElement.innerHTML = formatMessageContent(content);
+                }
+            }
+            
+            // Update mobile chat
+            const mobileMessage = document.getElementById(`mobile-message-${messageId}`);
+            if (mobileMessage) {
+                const contentElement = mobileMessage.querySelector('.message-content');
+                if (contentElement) {
+                    contentElement.innerHTML = formatMessageContent(content);
+                }
+            }
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
         }
 
         // Use demo response when API fails
@@ -1419,7 +1137,7 @@ nav {
     margin: 0 auto;
 }
 
-logo {
+.logo {
     font-size: 1.5rem;
     font-weight: bold;
     color: #3b82f6;
@@ -2019,41 +1737,43 @@ document.addEventListener('DOMContentLoaded', function() {
             return message.id;
         }
 
-        // Update chat message content
-        function updateChatMessage(messageId, content) {
-            // Update state
-            const message = state.chatHistory.find(m => m.id === messageId);
-            if (message) {
-                message.content = content;
-            }
-            
-            // Update UI
-            const messageElements = document.querySelectorAll(`.chat-bubble`);
-            for (const element of messageElements) {
-                if (element.querySelector('.action-btn[data-id="' + messageId + '"]')) {
-                    const contentElement = element.querySelector('.mt-1');
-                    if (contentElement) {
-                        contentElement.innerHTML = formatMessageContent(content);
-                    }
-                    break;
-                }
-            }
-            
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
-            
-            // Save state
-            saveState();
-        }
-
         // Render chat message with action buttons
         function renderChatMessage(message) {
             const isUser = message.role === 'user';
             const messageHtml = `
-                <div class="chat-bubble rounded-lg p-3 ${isUser ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
+                <div id="message-${message.id}" class="chat-bubble rounded-lg p-3 ${isUser ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
                     <div class="font-medium ${isUser ? 'text-blue-400' : 'text-emerald-400'}">${isUser ? 'You' : 'Buddy AI'}</div>
-                    <div class="mt-1">${formatMessageContent(message.content)}</div>
+                    <div class="mt-1 message-content">${formatMessageContent(message.content)}</div>
+                    <div class="chat-bubble-actions">
+                        ${isUser ? `
+                            <button class="action-btn edit-chat" data-id="${message.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn copy-chat" data-id="${message.id}" title="Copy">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="action-btn delete-chat" data-id="${message.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `
+                            <button class="action-btn regenerate-chat" data-id="${message.id}" title="Regenerate">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                            <button class="action-btn copy-chat" data-id="${message.id}" title="Copy">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="action-btn delete-chat" data-id="${message.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            const mobileMessageHtml = `
+                <div id="mobile-message-${message.id}" class="chat-bubble rounded-lg p-3 ${isUser ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
+                    <div class="font-medium ${isUser ? 'text-blue-400' : 'text-emerald-400'}">${isUser ? 'You' : 'Buddy AI'}</div>
+                    <div class="mt-1 message-content">${formatMessageContent(message.content)}</div>
                     <div class="chat-bubble-actions">
                         ${isUser ? `
                             <button class="action-btn edit-chat" data-id="${message.id}" title="Edit">
@@ -2081,7 +1801,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             chatMessages.innerHTML += messageHtml;
-            mobileChatMessages.innerHTML += messageHtml;
+            mobileChatMessages.innerHTML += mobileMessageHtml;
             
             chatMessages.scrollTop = chatMessages.scrollHeight;
             mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
@@ -2125,7 +1845,7 @@ document.addEventListener('DOMContentLoaded', function() {
             mobileChatInput.value = '';
             
             // Use Puter AI to generate response
-            generateWithPuterJS(message);
+            generateWithPuter(message);
         }
 
         // Edit chat message
@@ -2186,7 +1906,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     deleteChatMessage(messageId);
                     
                     // Regenerate response
-                    generateWithPuterJS(userMessage.content);
+                    generateWithPuter(userMessage.content);
                 }
             }
         }
