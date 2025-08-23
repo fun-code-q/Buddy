@@ -32,6 +32,9 @@
             color: var(--light);
             transition: background-color 0.3s, color 0.3s;
             overflow-x: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .mono {
@@ -278,6 +281,79 @@
         .file-item:hover .file-edit-icon {
             opacity: 1;
         }
+        
+        /* FIXED STYLES */
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #builder-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .builder-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            margin-top: 64px; /* Height of header */
+            height: calc(100vh - 64px);
+        }
+        
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0; /* Allows flex item to shrink properly */
+        }
+        
+        #code-editor-container, #preview-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .preview-content {
+            flex: 1;
+            display: flex;
+            overflow: auto;
+        }
+        
+        #website-preview {
+            flex: 1;
+            border: none;
+        }
+        
+        #editor-toolbar {
+            flex-shrink: 0;
+        }
+        
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+        }
+        
+        header {
+            z-index: 100;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -368,18 +444,20 @@
             </header>
             
             <!-- Main Content Area -->
-            <div class="flex flex-1 pt-16 overflow-hidden">
+            <div class="builder-content">
                 <!-- Column 1: AI Chat Panel -->
                 <div id="chat-panel" class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:block resizable" style="min-width: 250px; max-width: 400px;">
-                    <div class="p-3 border-b border-slate-800 flex justify-between items-center">
-                        <h3 class="font-medium">Chat with Buddy</h3>
-                        <button id="minimize-chat" class="p-1 rounded hover:bg-slate-800 transition-colors">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                    </div>
-                    <div class="chat-container">
-                        <div id="chat-messages" class="chat-messages-container scrollable-section space-y-4">
-                            <!-- Chat messages will be added here -->
+                    <div class="panel-section">
+                        <div class="p-3 border-b border-slate-800 flex justify-between items-center">
+                            <h3 class="font-medium">Chat with Buddy</h3>
+                            <button id="minimize-chat" class="p-1 rounded hover:bg-slate-800 transition-colors">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                        <div class="panel-content">
+                            <div id="chat-messages" class="chat-messages-container scrollable-section space-y-4">
+                                <!-- Chat messages will be added here -->
+                            </div>
                         </div>
                         <div class="chat-input-container">
                             <div class="relative">
@@ -394,38 +472,42 @@
                 
                 <!-- Column 2: File Manager -->
                 <div id="file-panel" class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:block resizable" style="min-width: 200px; max-width: 350px;">
-                    <div class="p-3 border-b border-slate-800 flex justify-between items-center">
-                        <h3 class="font-medium">Project Files</h3>
-                        <div class="flex space-x-1">
-                            <button id="add-file" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add File">
-                                <i class="fas fa-file text-blue-400"></i>
+                    <div class="panel-section">
+                        <div class="p-3 border-b border-slate-800 flex justify-between items-center">
+                            <h3 class="font-medium">Project Files</h3>
+                            <div class="flex space-x-1">
+                                <button id="add-file" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add File">
+                                    <i class="fas fa-file text-blue-400"></i>
+                                </button>
+                                <button id="add-folder" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add Folder">
+                                    <i class="fas fa-folder text-yellow-400"></i>
+                                </button>
+                                <button id="minimize-files" class="p-1 rounded hover:bg-slate-800 transition-colors">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-2 border-b border-slate-800 flex space-x-2">
+                            <button id="save-project" class="flex-1 py-1 px-2 text-sm rounded bg-slate-800 hover:bg-slate-700 transition-colors">
+                                <i class="fas fa-save mr-1"></i>
                             </button>
-                            <button id="add-folder" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add Folder">
-                                <i class="fas fa-folder text-yellow-400"></i>
-                            </button>
-                            <button id="minimize-files" class="p-1 rounded hover:bg-slate-800 transition-colors">
-                                <i class="fas fa-minus"></i>
+                            <button id="download-project" class="flex-1 py-1 px-2 text-sm rounded bg-blue-600 hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-download mr-1"></i>
                             </button>
                         </div>
-                    </div>
-                    <div class="p-2 border-b border-slate-800 flex space-x-2">
-                        <button id="save-project" class="flex-1 py-1 px-2 text-sm rounded bg-slate-800 hover:bg-slate-700 transition-colors">
-                            <i class="fas fa-save mr-1"></i>
-                        </button>
-                        <button id="download-project" class="flex-1 py-1 px-2 text-sm rounded bg-blue-600 hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-download mr-1"></i>
-                        </button>
-                    </div>
-                    <div id="file-tree" class="flex-1 overflow-y-auto p-2 scrollable-section">
-                        <div class="file-item folder" data-path="/">
-                            <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
-                            <span class="file-name">my-project</span>
-                            <span class="file-edit-icon" title="Rename folder">
-                                <i class="fas fa-pencil-alt text-slate-400"></i>
-                            </span>
-                        </div>
-                        <div class="file-tree ml-4 hidden">
-                            <!-- Files will be added here dynamically -->
+                        <div class="panel-content">
+                            <div id="file-tree" class="p-2 scrollable-section">
+                                <div class="file-item folder" data-path="/">
+                                    <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
+                                    <span class="file-name">my-project</span>
+                                    <span class="file-edit-icon" title="Rename folder">
+                                        <i class="fas fa-pencil-alt text-slate-400"></i>
+                                    </span>
+                                </div>
+                                <div class="file-tree ml-4 hidden">
+                                    <!-- Files will be added here dynamically -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -451,7 +533,7 @@
                     </div>
                     
                     <!-- Code Editor -->
-                    <div id="code-editor-container" class="flex-1 overflow-hidden scrollable-section">
+                    <div id="code-editor-container" class="flex-1 overflow-hidden">
                         <div class="code-editor h-full">
                             <div class="editor-header">
                                 <div class="flex space-x-2">
@@ -483,10 +565,8 @@
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
-                        <div id="preview-wrapper" class="flex-1 overflow-auto p-4">
-                            <div id="preview-content" class="w-full h-full flex justify-center">
-                                <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
-                            </div>
+                        <div class="preview-content">
+                            <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
                         </div>
                     </div>
                 </div>
@@ -2357,7 +2437,7 @@ header {
         // Generate JavaScript template
         function generateJsTemplate() {
             return `// JavaScript for ${state.projectName}
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContent', function() {
     const ctaButton = document.querySelector('.cta-button');
     
     if (ctaButton) {
