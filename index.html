@@ -565,7 +565,7 @@
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
-                        <div class="preview-content">
+                        <div class="preview-content" id="preview-wrapper">
                             <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
                         </div>
                     </div>
@@ -821,6 +821,17 @@
             updatePreview();
         }
 
+        // Safely escape HTML to prevent DOM injection
+        function escapeHtml(unsafe) {
+            if (unsafe == null) return '';
+            return String(unsafe)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         // Set up event listeners
         function setupEventListeners() {
             // Theme toggles
@@ -850,11 +861,13 @@
             });
             
             // Project name input
-            projectNameInput.addEventListener('change', (e) => {
-                state.projectName = e.target.value;
-                currentProjectNameMenu.textContent = e.target.value;
-                saveState();
-            });
+            if (projectNameInput) {
+                projectNameInput.addEventListener('change', (e) => {
+                    state.projectName = e.target.value;
+                    currentProjectNameMenu.textContent = e.target.value;
+                    saveState();
+                });
+            }
             
             // New project button
             newProjectBtn.addEventListener('click', createNewProject);
@@ -919,8 +932,9 @@
             deviceBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     deviceBtns.forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    const device = e.target.dataset.device;
+                    const targetBtn = e.currentTarget;
+                    targetBtn.classList.add('active');
+                    const device = targetBtn.dataset.device;
                     setPreviewDevice(device);
                 });
             });
@@ -1751,7 +1765,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add thinking animation to chat with timer
         function addThinkingAnimation() {
             const id = Date.now();
-            const thinkingHtml = `
+            const desktopHtml = `
                 <div id="thinking-${id}" class="chat-bubble rounded-lg p-3 bg-slate-800 border-l-4 border-emerald-500">
                     <div class="font-medium text-emerald-400">Buddy AI</div>
                     <div class="mt-1 thinking-dots">
@@ -1762,9 +1776,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="thinking-timer" id="thinking-timer-${id}">Thinking: 0s</div>
                 </div>
             `;
+            const mobileHtml = `
+                <div id="thinking-mobile-${id}" class="chat-bubble rounded-lg p-3 bg-slate-800 border-l-4 border-emerald-500">
+                    <div class="font-medium text-emerald-400">Buddy AI</div>
+                    <div class="mt-1 thinking-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="thinking-timer" id="thinking-timer-mobile-${id}">Thinking: 0s</div>
+                </div>
+            `;
             
-            chatMessages.innerHTML += thinkingHtml;
-            mobileChatMessages.innerHTML += thinkingHtml;
+            chatMessages.innerHTML += desktopHtml;
+            mobileChatMessages.innerHTML += mobileHtml;
             
             chatMessages.scrollTop = chatMessages.scrollHeight;
             mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
@@ -1773,9 +1798,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const startTime = Date.now();
             state.thinkingTimers[id] = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                const timerElement = document.getElementById(`thinking-timer-${id}`);
-                if (timerElement) {
-                    timerElement.textContent = `Thinking: ${elapsed}s`;
+                const timerDesktop = document.getElementById(`thinking-timer-${id}`);
+                if (timerDesktop) {
+                    timerDesktop.textContent = `Thinking: ${elapsed}s`;
+                }
+                const timerMobile = document.getElementById(`thinking-timer-mobile-${id}`);
+                if (timerMobile) {
+                    timerMobile.textContent = `Thinking: ${elapsed}s`;
                 }
             }, 1000);
             
@@ -1784,11 +1813,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Remove thinking animation and timer
         function removeThinkingAnimation(id) {
-            const thinkingElem = document.getElementById(`thinking-${id}`);
-            const mobileThinkingElem = document.getElementById(`thinking-${id}`);
+            const thinkingElemDesktop = document.getElementById(`thinking-${id}`);
+            const thinkingElemMobile = document.getElementById(`thinking-mobile-${id}`);
             
-            if (thinkingElem) thinkingElem.remove();
-            if (mobileThinkingElem) mobileThinkingElem.remove();
+            if (thinkingElemDesktop) thinkingElemDesktop.remove();
+            if (thinkingElemMobile) thinkingElemMobile.remove();
             
             // Clear timer
             if (state.thinkingTimers[id]) {
@@ -1907,9 +1936,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Format message content with code highlighting
         function formatMessageContent(content) {
             // Simple code formatting - in a real app you'd use a proper highlighting library
-            return content
-                .replace(/```([\s\S]*?)```/g, '<pre class="bg-slate-900 p-2 rounded my-2 overflow-x-auto"><code>$1</code></pre>')
-                .replace(/`([^`]+)`/g, '<code class="bg-slate-700 px-1 rounded">$1</code>');
+            if (!content) return '';
+            let safe = '';
+            const codeBlockRegex = /```([\s\S]*?)```/g;
+            let lastIndex = 0;
+            let match;
+            while ((match = codeBlockRegex.exec(content)) !== null) {
+                const before = content.slice(lastIndex, match.index);
+                // Escape normal text and format inline code inside it
+                const escapedBefore = escapeHtml(before).replace(/`([^`]+)`/g, (m, p1) => `<code class="bg-slate-700 px-1 rounded">${escapeHtml(p1)}</code>`);
+                safe += escapedBefore;
+                // Add escaped code block
+                safe += `<pre class="bg-slate-900 p-2 rounded my-2 overflow-x-auto"><code>${escapeHtml(match[1])}</code></pre>`;
+                lastIndex = match.index + match[0].length;
+            }
+            // Tail remainder
+            const remainder = content.slice(lastIndex);
+            const escapedRemainder = escapeHtml(remainder).replace(/`([^`]+)`/g, (m, p1) => `<code class="bg-slate-700 px-1 rounded">${escapeHtml(p1)}</code>`);
+            safe += escapedRemainder;
+            return safe;
         }
 
         // Handle send chat
@@ -2082,45 +2127,45 @@ document.addEventListener('DOMContentLoaded', function() {
             const file = state.files[path];
             if (!file) return;
             
-            // Check if the new name is the same as the current name
-            if (newName === file.name) {
+            // If renaming the root folder (project)
+            if (path === '/') {
+                state.files['/'].name = newName;
+                renderFileTree();
                 renameModal.classList.add('hidden');
+                saveState();
+                showNotification('Name updated successfully');
                 return;
             }
             
-            // Check if a file/folder with the new name already exists
+            const oldPath = path;
             const newPath = `/${newName}`;
+            
             if (state.files[newPath]) {
                 showNotification('A file or folder with this name already exists', 'error');
                 return;
             }
             
-            // Update the file/folder name
-            file.name = newName;
+            // Re-key file entry
+            const oldEntry = state.files[oldPath];
+            oldEntry.name = newName;
+            oldEntry.path = newPath;
+            state.files[newPath] = oldEntry;
+            delete state.files[oldPath];
             
-            // If it's a file, update the extension if needed
-            if (file.type === 'file') {
-                const extension = newName.split('.').pop();
-                if (extension && !newName.endsWith(`.${extension}`)) {
-                    file.name = `${newName}.${extension}`;
-                }
+            // Update root children references
+            if (state.files['/'] && Array.isArray(state.files['/'].children)) {
+                state.files['/'].children = state.files['/'].children.map(p => p === oldPath ? newPath : p);
             }
             
-            // Update UI
-            renderFileTree();
-            
-            // If the renamed file is the current file, update the editor
-            if (state.currentFile === path.split('/').pop()) {
-                state.currentFile = file.name;
+            // Update current file if needed
+            if (state.currentFile === oldPath.split('/').pop()) {
+                state.currentFile = newName;
                 updateCodeEditor();
             }
             
-            // Close modal
+            renderFileTree();
             renameModal.classList.add('hidden');
-            
-            // Save state
             saveState();
-            
             showNotification('Name updated successfully');
         }
 
@@ -2164,26 +2209,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Apply basic syntax highlighting
         function applySyntaxHighlighting() {
             const fileExtension = state.currentFile.split('.').pop().toLowerCase();
-            let content = codeEditor.textContent;
+            let content = escapeHtml(codeEditor.textContent);
             
             // Very basic highlighting for demo purposes
             // In a real app, you'd use a library like Prism.js or Highlight.js
             if (fileExtension === 'html') {
                 content = content
-                    .replace(/&lt;!DOCTYPE([^&]*)&gt;/g, '<span class="token doctype">&lt;!DOCTYPE$1&gt;</span>')
-                    .replace(/&lt;(\/?)([a-zA-Z0-9-]+)([^&]*)&gt;/g, '&lt;$1<span class="token tag">$2</span>$3&gt;')
-                    .replace(/([a-zA-Z-]+)=/g, '<span class="token attribute">$1</span>=')
-                    .replace(/&quot;([^&]*)&quot;/g, '<span class="token string">&quot;$1&quot;</span>');
+                    .replace(/&lt;!DOCTYPE([^&]*)&gt;/g, '<span class="token doctype">&lt;!DOCTYPE$1&gt;<\/span>')
+                    .replace(/&lt;(\/?)([a-zA-Z0-9-]+)([^&]*)&gt;/g, '&lt;$1<span class="token tag">$2<\/span>$3&gt;')
+                    .replace(/([a-zA-Z-]+)=/g, '<span class="token attribute">$1<\/span>=')
+                    .replace(/&quot;([^&]*)&quot;/g, '<span class="token string">&quot;$1&quot;<\/span>');
             } else if (fileExtension === 'css') {
                 content = content
-                    .replace(/([\.#]?[a-zA-Z0-9-]+\s*){/g, '<span class="token selector">$1</span>{')
-                    .replace(/([a-zA-Z-]+):/g, '<span class="token property">$1</span>:')
-                    .replace(/:(.*?);/g, ':<span class="token value">$1</span>;');
+                    .replace(/([\.\#]?[a-zA-Z0-9-]+\s*)\{/g, '<span class="token selector">$1<\/span>{')
+                    .replace(/([a-zA-Z-]+):/g, '<span class="token property">$1<\/span>:')
+                    .replace(/:(.*?);/g, ':<span class="token value">$1<\/span>;');
             } else if (fileExtension === 'js') {
                 content = content
-                    .replace(/\b(function|var|let|const|if|else|for|while|return|class|import|export|from)\b/g, '<span class="token keyword">$1</span>')
-                    .replace(/(".*?"|'.*?')/g, '<span class="token string">$1</span>')
-                    .replace(/(\/\/.*)/g, '<span class="token comment">$1</span>');
+                    .replace(/\b(function|var|let|const|if|else|for|while|return|class|import|export|from)\b/g, '<span class="token keyword">$1<\/span>')
+                    .replace(/(\".*?\"|'.*?')/g, '<span class="token string">$1<\/span>')
+                    .replace(/(\/\/.*)/g, '<span class="token comment">$1<\/span>');
             }
             
             codeEditor.innerHTML = content;
@@ -2191,6 +2236,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update preview
         function updatePreview() {
+            if (previewContainer.classList.contains('hidden')) {
+                return;
+            }
             const htmlFile = state.files['/index.html'];
             const cssFile = state.files['/style.css'];
             const jsFile = state.files['/script.js'];
@@ -2229,22 +2277,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Set preview device
         function setPreviewDevice(device) {
-            const previewWrapper = document.getElementById('preview-wrapper');
+            const previewWrapper = document.getElementById('preview-wrapper') || document.querySelector('.preview-content');
+            if (!previewWrapper) return;
             switch (device) {
                 case 'mobile':
-                    previewWrapper.className = 'w-full h-full flex justify-center p-4';
+                    previewWrapper.className = 'preview-content w-full h-full flex justify-center p-4';
                     websitePreview.className = 'w-full h-full border border-slate-200 rounded-lg';
                     websitePreview.style.maxWidth = '375px';
                     websitePreview.style.maxHeight = '667px';
                     break;
                 case 'tablet':
-                    previewWrapper.className = 'w-full h-full flex justify-center p-4';
+                    previewWrapper.className = 'preview-content w-full h-full flex justify-center p-4';
                     websitePreview.className = 'w-full h-full border border-slate-200 rounded-lg';
                     websitePreview.style.maxWidth = '768px';
                     websitePreview.style.maxHeight = '1024px';
                     break;
-                case 'desktop':
-                    previewWrapper.className = 'w-full h-full flex justify-center p-4';
+                default:
+                    previewWrapper.className = 'preview-content w-full h-full flex justify-center p-4';
                     websitePreview.className = 'w-full h-full border border-slate-200 rounded-lg';
                     websitePreview.style.maxWidth = '100%';
                     websitePreview.style.maxHeight = '100%';
@@ -2437,7 +2486,7 @@ header {
         // Generate JavaScript template
         function generateJsTemplate() {
             return `// JavaScript for ${state.projectName}
-document.addEventListener('DOMContent', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const ctaButton = document.querySelector('.cta-button');
     
     if (ctaButton) {
@@ -2526,7 +2575,7 @@ document.addEventListener('DOMContent', function() {
             state.redoStack = [];
             
             // Update UI
-            projectNameInput.value = state.projectName;
+            projectNameInput && (projectNameInput.value = state.projectName);
             currentProjectNameMenu.textContent = state.projectName;
             chatMessages.innerHTML = '';
             mobileChatMessages.innerHTML = '';
@@ -2671,7 +2720,7 @@ document.addEventListener('DOMContent', function() {
                         builderPage.classList.remove('hidden');
                     }
                     
-                    projectNameInput.value = state.projectName;
+                    projectNameInput && (projectNameInput.value = state.projectName);
                     currentProjectNameMenu.textContent = state.projectName;
                     
                     // Render chat history
