@@ -282,6 +282,19 @@
             opacity: 1;
         }
         
+        /* File delete icon */
+        .file-delete-icon {
+            margin-left: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            padding: 0.25rem;
+            cursor: pointer;
+        }
+        
+        .file-item:hover .file-delete-icon {
+            opacity: 1;
+        }
+        
         /* FIXED STYLES */
         #app {
             height: 100vh;
@@ -2150,16 +2163,20 @@ document.addEventListener('DOMContentLoaded', function() {
             root.children.forEach(childPath => {
                 const file = state.files[childPath];
                 if (file) {
-                    const icon = getFileIcon(file.name);
+                    const icon = file.type === 'folder' ? '<i class="fas fa-folder text-yellow-400"></i>' : getFileIcon(file.name);
                     const isActive = state.currentFile === file.name;
                     
                     html += `
-                        <div class="file-item ${isActive ? 'bg-slate-800' : ''}" data-path="${file.path}">
+                        <div class="file-item ${isActive ? 'bg-slate-800' : ''} ${file.type === 'folder' ? 'folder' : ''}" data-path="${file.path}">
                             <span class="file-icon">${icon}</span>
                             <span class="file-name">${file.name}</span>
                             <span class="file-edit-icon" title="Rename file">
                                 <i class="fas fa-pencil-alt text-slate-400"></i>
                             </span>
+                            ${file.path !== '/' ? `
+                            <span class="file-delete-icon" title="Delete">
+                                <i class="fas fa-trash text-red-400"></i>
+                            </span>` : ''}
                         </div>
                     `;
                 }
@@ -2192,6 +2209,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     editIcon.addEventListener('click', (e) => {
                         e.stopPropagation();
                         showRenameModal(path);
+                    });
+                }
+                // Add event listeners for delete icons
+                const deleteIcon = item.querySelector('.file-delete-icon');
+                if (deleteIcon) {
+                    deleteIcon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (file.type === 'folder') {
+                            confirmDeleteFolder(path);
+                        } else if (file.type === 'file') {
+                            confirmDeleteFile(path);
+                        }
                     });
                 }
             });
@@ -2433,7 +2462,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 type,
                 name: fullName,
                 path,
-                content: type === 'file' ? getFileTemplate(extension) : ''
+                content: type === 'file' ? getFileTemplate(extension) : '',
+                children: type === 'folder' ? [] : undefined
             };
             
             state.files['/'].children.push(path);
