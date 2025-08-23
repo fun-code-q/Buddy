@@ -815,10 +815,34 @@
             // Load saved state from localStorage if available
             loadState();
             
+            // Ensure only one page is visible based on current state
+            enforcePageVisibility();
+            
             // Render initial UI
             renderFileTree();
             updateCodeEditor();
             updatePreview();
+        }
+
+        // Page visibility helpers to avoid both pages showing simultaneously
+        function enforcePageVisibility() {
+            if (state.currentPage === 'builder') {
+                welcomePage.classList.add('hidden');
+                builderPage.classList.remove('hidden');
+            } else {
+                welcomePage.classList.remove('hidden');
+                builderPage.classList.add('hidden');
+            }
+        }
+
+        function showWelcomePage() {
+            state.currentPage = 'welcome';
+            enforcePageVisibility();
+        }
+
+        function showBuilderPage() {
+            state.currentPage = 'builder';
+            enforcePageVisibility();
         }
 
         // Safely escape HTML to prevent DOM injection
@@ -1028,9 +1052,7 @@
             const enhancedPrompt = `Create a modern, colorful, UI/UX rich, futuristic ${prompt}`;
             
             // Switch to builder page
-            welcomePage.classList.add('hidden');
-            builderPage.classList.remove('hidden');
-            state.currentPage = 'builder';
+            showBuilderPage();
             
             // Add user message to chat
             addChatMessage('user', prompt);
