@@ -347,6 +347,10 @@
             overflow: auto;
         }
         
+        /* Panel visibility helpers */
+        .panel-collapsed { display: none !important; }
+        .panel-expanded { width: 40vw !important; max-width: 60vw !important; }
+        
         header {
             z-index: 100;
             position: fixed;
@@ -428,6 +432,12 @@
                 <!-- Removed the "My project" editable name section from header -->
                 
                 <div class="flex items-center space-x-2">
+                    <button id="toggle-chat-panel" class="p-2 rounded-lg hover:bg-slate-700 transition-colors hidden md:inline-flex" title="Show/Hide Chat">
+                        <i class="fas fa-comments"></i>
+                    </button>
+                    <button id="toggle-file-panel" class="p-2 rounded-lg hover:bg-slate-700 transition-colors hidden md:inline-flex" title="Show/Hide Files">
+                        <i class="fas fa-folder"></i>
+                    </button>
                     <button id="toggle-code" class="p-2 rounded-lg hover:bg-slate-700 transition-colors text-blue-400">
                         <i class="fas fa-code"></i>
                     </button>
@@ -450,9 +460,14 @@
                     <div class="panel-section">
                         <div class="p-3 border-b border-slate-800 flex justify-between items-center">
                             <h3 class="font-medium">Chat with Buddy</h3>
-                            <button id="minimize-chat" class="p-1 rounded hover:bg-slate-800 transition-colors">
-                                <i class="fas fa-minus"></i>
-                            </button>
+                            <div class="flex items-center space-x-1">
+                                <button id="maximize-chat" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Maximize/Restore">
+                                    <i class="fas fa-up-right-and-down-left-from-center"></i>
+                                </button>
+                                <button id="minimize-chat" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Minimize">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="panel-content">
                             <div id="chat-messages" class="chat-messages-container scrollable-section space-y-4">
@@ -481,6 +496,9 @@
                                 </button>
                                 <button id="add-folder" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add Folder">
                                     <i class="fas fa-folder text-yellow-400"></i>
+                                </button>
+                                <button id="maximize-files" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Maximize/Restore">
+                                    <i class="fas fa-up-right-and-down-left-from-center"></i>
                                 </button>
                                 <button id="minimize-files" class="p-1 rounded hover:bg-slate-800 transition-colors">
                                     <i class="fas fa-minus"></i>
@@ -736,6 +754,12 @@
             thinkingTimers: {} // Track thinking timers for AI responses
         };
 
+        // UI flags
+        state.chatCollapsed = false;
+        state.chatExpanded = false;
+        state.filesCollapsed = false;
+        state.filesExpanded = false;
+
         // DOM Elements
         const welcomePage = document.getElementById('welcome-page');
         const builderPage = document.getElementById('builder-page');
@@ -755,11 +779,13 @@
         const exportPdf = document.getElementById('export-pdf');
         const chatPanel = document.getElementById('chat-panel');
         const minimizeChat = document.getElementById('minimize-chat');
+        const maximizeChat = document.getElementById('maximize-chat');
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const sendChat = document.getElementById('send-chat');
         const filePanel = document.getElementById('file-panel');
         const minimizeFiles = document.getElementById('minimize-files');
+        const maximizeFiles = document.getElementById('maximize-files');
         const addFile = document.getElementById('add-file');
         const addFolder = document.getElementById('add-folder');
         const saveProject = document.getElementById('save-project');
@@ -806,6 +832,8 @@
         const renameInput = document.getElementById('rename-input');
         const renameModalCancel = document.getElementById('rename-modal-cancel');
         const renameModalConfirm = document.getElementById('rename-modal-confirm');
+        const toggleChatPanelBtn = document.getElementById('toggle-chat-panel');
+        const toggleFilePanelBtn = document.getElementById('toggle-file-panel');
 
         // Initialize the application
         function init() {
@@ -822,6 +850,7 @@
             renderFileTree();
             updateCodeEditor();
             updatePreview();
+            applyPanelStates();
         }
 
         // Page visibility helpers to avoid both pages showing simultaneously
@@ -920,8 +949,24 @@
             
             // Chat panel
             minimizeChat.addEventListener('click', () => {
-                chatPanel.classList.toggle('hidden');
+                state.chatCollapsed = true;
+                state.chatExpanded = false;
+                applyPanelStates();
             });
+            maximizeChat.addEventListener('click', () => {
+                state.chatExpanded = !state.chatExpanded;
+                state.chatCollapsed = false;
+                // If chat expands, un-expand files
+                if (state.chatExpanded) state.filesExpanded = false;
+                applyPanelStates();
+            });
+            if (toggleChatPanelBtn) {
+                toggleChatPanelBtn.addEventListener('click', () => {
+                    state.chatCollapsed = !state.chatCollapsed;
+                    if (state.chatCollapsed) state.chatExpanded = false;
+                    applyPanelStates();
+                });
+            }
             
             sendChat.addEventListener('click', handleSendChat);
             chatInput.addEventListener('keypress', (e) => {
@@ -932,8 +977,24 @@
             
             // File panel
             minimizeFiles.addEventListener('click', () => {
-                filePanel.classList.toggle('hidden');
+                state.filesCollapsed = true;
+                state.filesExpanded = false;
+                applyPanelStates();
             });
+            maximizeFiles.addEventListener('click', () => {
+                state.filesExpanded = !state.filesExpanded;
+                state.filesCollapsed = false;
+                // If files expands, un-expand chat
+                if (state.filesExpanded) state.chatExpanded = false;
+                applyPanelStates();
+            });
+            if (toggleFilePanelBtn) {
+                toggleFilePanelBtn.addEventListener('click', () => {
+                    state.filesCollapsed = !state.filesCollapsed;
+                    if (state.filesCollapsed) state.filesExpanded = false;
+                    applyPanelStates();
+                });
+            }
             
             addFile.addEventListener('click', () => showFileModal('file'));
             addFolder.addEventListener('click', () => showFileModal('folder'));
@@ -2756,6 +2817,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Update preview
                     updatePreview();
++                    // Apply panel states loaded from storage if present
++                    if (typeof state.chatCollapsed === 'boolean' || typeof state.filesCollapsed === 'boolean') {
++                        applyPanelStates();
++                    }
                 }
             } catch (error) {
                 console.error('Error loading saved state:', error);
