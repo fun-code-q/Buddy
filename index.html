@@ -301,6 +301,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
         
         #builder-page {
@@ -308,6 +309,12 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
         }
         
         .builder-content {
@@ -399,6 +406,27 @@
         
         .message-content strong {
             font-weight: 600;
+        }
+        
+        /* FIX: Ensure proper visibility of pages */
+        #welcome-page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 20;
+            background-color: var(--darker);
+        }
+        
+        #builder-page.hidden {
+            display: none !important;
+        }
+        
+        /* FIX: Ensure code and preview panels toggle correctly */
+        #code-editor-container.hidden,
+        #preview-container.hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -1006,12 +1034,15 @@
             // Delete project button
             deleteProjectBtn.addEventListener('click', confirmDeleteProject);
             
-            // Toggle code/preview
+            // Toggle code/preview - FIXED: Ensure only one is visible at a time
             toggleCode.addEventListener('click', () => {
                 codeEditorContainer.classList.remove('hidden');
                 previewContainer.classList.add('hidden');
                 toggleCode.classList.add('text-blue-400');
                 togglePreview.classList.remove('text-emerald-400');
+                state.codeMinimized = false;
+                state.previewMinimized = false;
+                applyPanelStates();
             });
             
             togglePreview.addEventListener('click', () => {
@@ -1020,6 +1051,9 @@
                 togglePreview.classList.add('text-emerald-400');
                 toggleCode.classList.remove('text-blue-400');
                 updatePreview();
+                state.codeMinimized = false;
+                state.previewMinimized = false;
+                applyPanelStates();
             });
             
             // Minimize/maximize code editor
@@ -1680,7 +1714,7 @@ document.addEventListener('DOMContentLoaded', function() {
 body {
     font-family: 'Inter', sans-serif;
     line-height: 1.6;
-    color: #333;
+    color: 333;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     min-height: 100vh;
 }
@@ -2856,7 +2890,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const element = document.createElement('div');
                 element.innerHTML = `
                     <h1>Chat Export - ${state.projectName}</h1>
-                    <p>Generated on ${new Date().toLocaleDateString()}</p>
+                    <p>Generated on ${new Date().toLocaleDate()}</p>
                     ${state.chatHistory.map(msg => `
                         <div style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
                             <strong>${msg.role === 'user' ? 'You' : 'Buddy AI'}</strong> 
