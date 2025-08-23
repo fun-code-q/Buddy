@@ -861,6 +861,18 @@
             } else {
                 welcomePage.classList.remove('hidden');
                 builderPage.classList.add('hidden');
+                // Force-hide any builder overlays/drawers when on welcome page
+                if (mobileChatDrawer) mobileChatDrawer.classList.add('hidden');
+                if (mobileFileDrawer) mobileFileDrawer.classList.add('hidden');
+                if (confirmationModal) confirmationModal.classList.add('hidden');
+                if (fileModal) fileModal.classList.add('hidden');
+                if (renameModal) renameModal.classList.add('hidden');
+                if (menuDropdown) menuDropdown.classList.add('hidden');
+                // Reset preview to avoid layout flashes
+                if (previewContainer) previewContainer.classList.add('hidden');
+                if (codeEditorContainer) codeEditorContainer.classList.remove('hidden');
+                if (togglePreview) togglePreview.classList.remove('text-emerald-400');
+                if (toggleCode) toggleCode.classList.add('text-blue-400');
             }
         }
 
