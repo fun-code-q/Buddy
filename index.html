@@ -396,7 +396,7 @@
                 
                 <div class="w-full relative mb-6">
                     <textarea id="prompt-input" class="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all h-32 resize-none" placeholder="Describe the website you want to build..."></textarea>
-                    <button id="send-prompt" class="absolute right-3 bottom-3 p-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors">
+                    <button id="send-prompt" class="absolute right-3 bottom-3 p-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors z-10" type="button">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
@@ -490,7 +490,7 @@
                         <div class="chat-input-container">
                             <div class="relative">
                                 <input id="chat-input" type="text" placeholder="Message Buddy..." class="w-full p-2 pl-3 pr-10 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none">
-                                <button id="send-chat" class="absolute right-2 top-2 text-blue-400">
+                                <button id="send-chat" class="absolute right-2 top-2 text-blue-400 z-10" type="button">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                             </div>
@@ -617,7 +617,7 @@
                 <div class="p-3 border-t border-slate-800">
                     <div class="relative">
                         <input id="mobile-chat-input" type="text" placeholder="Message Buddy..." class="w-full p-2 pl-3 pr-10 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none">
-                        <button id="send-mobile-chat" class="absolute right-2 top-2 text-blue-400">
+                        <button id="send-mobile-chat" class="absolute right-2 top-2 text-blue-400 z-10" type="button">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
@@ -918,7 +918,7 @@
             
             // Send prompt
             sendPrompt.addEventListener('click', handleSendPrompt);
-            promptInput.addEventListener('keypress', (e) => {
+            promptInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSendPrompt();
@@ -994,8 +994,9 @@
             }
             
             sendChat.addEventListener('click', handleSendChat);
-            chatInput.addEventListener('keypress', (e) => {
+            chatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     handleSendChat();
                 }
             });
@@ -1062,8 +1063,9 @@
             });
             
             sendMobileChat.addEventListener('click', handleSendChat);
-            mobileChatInput.addEventListener('keypress', (e) => {
+            mobileChatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     handleSendChat();
                 }
             });
