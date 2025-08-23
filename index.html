@@ -196,6 +196,81 @@
         .loading {
             animation: spin 1s linear infinite;
         }
+        
+        /* NEW STYLES FOR THE UPDATED FEATURES */
+        
+        /* Chat input fixed to bottom */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .chat-messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        
+        .chat-input-container {
+            padding: 1rem;
+            border-top: 1px solid #334155;
+            background-color: #0f172a;
+            position: sticky;
+            bottom: 0;
+        }
+        
+        /* Chat bubble action buttons */
+        .chat-bubble-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .chat-bubble:hover .chat-bubble-actions {
+            opacity: 1;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 0.25rem;
+        }
+        
+        .action-btn:hover {
+            color: #e2e8f0;
+        }
+        
+        /* Thinking timer */
+        .thinking-timer {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+        
+        /* Scrollable sections */
+        .scrollable-section {
+            overflow-y: auto;
+        }
+        
+        /* File edit icon */
+        .file-edit-icon {
+            margin-left: auto;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            padding: 0.25rem;
+            cursor: pointer;
+        }
+        
+        .file-item:hover .file-edit-icon {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -267,9 +342,7 @@
                     </div>
                 </div>
                 
-                <div class="flex-1 mx-4">
-                    <input id="project-name-input" type="text" value="My Project" class="w-full max-w-md bg-transparent border-b border-slate-600 focus:border-blue-500 outline-none text-center py-1">
-                </div>
+                <!-- Removed the "My project" editable name section from header -->
                 
                 <div class="flex items-center space-x-2">
                     <button id="toggle-code" class="p-2 rounded-lg hover:bg-slate-700 transition-colors text-blue-400">
@@ -297,15 +370,17 @@
                             <i class="fas fa-minus"></i>
                         </button>
                     </div>
-                    <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-4">
-                        <!-- Chat messages will be added here -->
-                    </div>
-                    <div class="p-3 border-t border-slate-800">
-                        <div class="relative">
-                            <input id="chat-input" type="text" placeholder="Message Buddy..." class="w-full p-2 pl-3 pr-10 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none">
-                            <button id="send-chat" class="absolute right-2 top-2 text-blue-400">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
+                    <div class="chat-container">
+                        <div id="chat-messages" class="chat-messages-container scrollable-section space-y-4">
+                            <!-- Chat messages will be added here -->
+                        </div>
+                        <div class="chat-input-container">
+                            <div class="relative">
+                                <input id="chat-input" type="text" placeholder="Message Buddy..." class="w-full p-2 pl-3 pr-10 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none">
+                                <button id="send-chat" class="absolute right-2 top-2 text-blue-400">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -334,10 +409,13 @@
                             <i class="fas fa-download mr-1"></i>
                         </button>
                     </div>
-                    <div id="file-tree" class="flex-1 overflow-y-auto p-2">
+                    <div id="file-tree" class="flex-1 overflow-y-auto p-2 scrollable-section">
                         <div class="file-item folder" data-path="/">
                             <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
                             <span class="file-name">my-project</span>
+                            <span class="file-edit-icon" title="Rename folder">
+                                <i class="fas fa-pencil-alt text-slate-400"></i>
+                            </span>
                         </div>
                         <div class="file-tree ml-4 hidden">
                             <!-- Files will be added here dynamically -->
@@ -366,7 +444,7 @@
                     </div>
                     
                     <!-- Code Editor -->
-                    <div id="code-editor-container" class="flex-1 overflow-auto">
+                    <div id="code-editor-container" class="flex-1 overflow-auto scrollable-section">
                         <div class="code-editor h-full">
                             <div class="editor-header">
                                 <div class="flex space-x-2">
@@ -381,7 +459,7 @@
                     </div>
                     
                     <!-- Preview Container -->
-                    <div id="preview-container" class="hidden flex-1 overflow-auto bg-white">
+                    <div id="preview-container" class="hidden flex-1 overflow-auto bg-white scrollable-section">
                         <div class="p-2 border-b border-slate-200 flex justify-between items-center bg-slate-100">
                             <div class="flex space-x-2">
                                 <button class="device-btn active px-2 py-1 text-xs rounded bg-white" data-device="desktop">
@@ -456,6 +534,9 @@
                     <div class="file-item folder" data-path="/">
                         <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
                         <span class="file-name">my-project</span>
+                        <span class="file-edit-icon" title="Rename folder">
+                            <i class="fas fa-pencil-alt text-slate-400"></i>
+                        </span>
                     </div>
                     <div class="file-tree ml-4 hidden">
                         <!-- Files will be added here dynamically -->
@@ -509,6 +590,21 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Rename Modal -->
+        <div id="rename-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-slate-800 rounded-lg p-6 max-w-md w-full border border-slate-700">
+                <h3 class="text-xl font-bold mb-4">Rename</h3>
+                <div class="mb-4">
+                    <label class="block text-sm text-slate-300 mb-1">New Name</label>
+                    <input id="rename-input" type="text" class="w-full p-2 rounded bg-slate-700 border border-slate-600 focus:border-blue-500 outline-none">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="rename-modal-cancel" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button id="rename-modal-confirm" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors">Rename</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -549,7 +645,8 @@
             fileHistory: [],
             codeHistory: [],
             undoStack: [],
-            redoStack: []
+            redoStack: [],
+            thinkingTimers: {} // Track thinking timers for AI responses
         };
 
         // DOM Elements
@@ -618,6 +715,10 @@
         const fileTypeSelect = document.getElementById('file-type-select');
         const fileModalCancel = document.getElementById('file-modal-cancel');
         const fileModalConfirm = document.getElementById('file-modal-confirm');
+        const renameModal = document.getElementById('rename-modal');
+        const renameInput = document.getElementById('rename-input');
+        const renameModalCancel = document.getElementById('rename-modal-cancel');
+        const renameModalConfirm = document.getElementById('rename-modal-confirm');
 
         // Initialize the application
         function init() {
@@ -655,8 +756,9 @@
                 });
             });
             
-            // Menu toggle
-            menuToggle.addEventListener('click', () => {
+            // Menu toggle - Fixed hamburger menu functionality
+            menuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
                 menuDropdown.classList.toggle('hidden');
             });
             
@@ -780,6 +882,12 @@
             });
             
             fileModalConfirm.addEventListener('click', handleFileModalConfirm);
+            
+            renameModalCancel.addEventListener('click', () => {
+                renameModal.classList.add('hidden');
+            });
+            
+            renameModalConfirm.addEventListener('click', handleRenameConfirm);
             
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
@@ -1541,17 +1649,18 @@ document.addEventListener('DOMContentLoaded', function() {
             saveState();
         }
 
-        // Add thinking animation to chat
+        // Add thinking animation to chat with timer
         function addThinkingAnimation() {
             const id = Date.now();
             const thinkingHtml = `
-                <div id="thinking-${id}" class="rounded-lg p-3 bg-slate-800 border-l-4 border-emerald-500">
+                <div id="thinking-${id}" class="chat-bubble rounded-lg p-3 bg-slate-800 border-l-4 border-emerald-500">
                     <div class="font-medium text-emerald-400">Buddy AI</div>
                     <div class="mt-1 thinking-dots">
                         <span></span>
                         <span></span>
                         <span></span>
                     </div>
+                    <div class="thinking-timer" id="thinking-timer-${id}">Thinking: 0s</div>
                 </div>
             `;
             
@@ -1561,21 +1670,38 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
             mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
             
+            // Start timer
+            const startTime = Date.now();
+            state.thinkingTimers[id] = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const timerElement = document.getElementById(`thinking-timer-${id}`);
+                if (timerElement) {
+                    timerElement.textContent = `Thinking: ${elapsed}s`;
+                }
+            }, 1000);
+            
             return id;
         }
 
-        // Remove thinking animation
+        // Remove thinking animation and timer
         function removeThinkingAnimation(id) {
             const thinkingElem = document.getElementById(`thinking-${id}`);
             const mobileThinkingElem = document.getElementById(`thinking-${id}`);
             
             if (thinkingElem) thinkingElem.remove();
             if (mobileThinkingElem) mobileThinkingElem.remove();
+            
+            // Clear timer
+            if (state.thinkingTimers[id]) {
+                clearInterval(state.thinkingTimers[id]);
+                delete state.thinkingTimers[id];
+            }
         }
 
-        // Add chat message
+        // Add chat message with action buttons
         function addChatMessage(role, content) {
             const message = {
+                id: Date.now(),
                 role,
                 content,
                 timestamp: new Date()
@@ -1588,14 +1714,40 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Save state
             saveState();
+            
+            return message.id;
         }
 
-        // Render chat message
+        // Render chat message with action buttons
         function renderChatMessage(message) {
+            const isUser = message.role === 'user';
             const messageHtml = `
-                <div class="rounded-lg p-3 ${message.role === 'user' ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
-                    <div class="font-medium ${message.role === 'user' ? 'text-blue-400' : 'text-emerald-400'}">${message.role === 'user' ? 'You' : 'Buddy AI'}</div>
+                <div class="chat-bubble rounded-lg p-3 ${isUser ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
+                    <div class="font-medium ${isUser ? 'text-blue-400' : 'text-emerald-400'}">${isUser ? 'You' : 'Buddy AI'}</div>
                     <div class="mt-1">${formatMessageContent(message.content)}</div>
+                    <div class="chat-bubble-actions">
+                        ${isUser ? `
+                            <button class="action-btn edit-chat" data-id="${message.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn copy-chat" data-id="${message.id}" title="Copy">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="action-btn delete-chat" data-id="${message.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `
+                            <button class="action-btn regenerate-chat" data-id="${message.id}" title="Regenerate">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                            <button class="action-btn copy-chat" data-id="${message.id}" title="Copy">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="action-btn delete-chat" data-id="${message.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `}
+                    </div>
                 </div>
             `;
             
@@ -1604,6 +1756,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             chatMessages.scrollTop = chatMessages.scrollHeight;
             mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll(`.edit-chat[data-id="${message.id}"]`).forEach(btn => {
+                btn.addEventListener('click', () => editChatMessage(message.id));
+            });
+            
+            document.querySelectorAll(`.copy-chat[data-id="${message.id}"]`).forEach(btn => {
+                btn.addEventListener('click', () => copyChatMessage(message.id));
+            });
+            
+            document.querySelectorAll(`.delete-chat[data-id="${message.id}"]`).forEach(btn => {
+                btn.addEventListener('click', () => deleteChatMessage(message.id));
+            });
+            
+            document.querySelectorAll(`.regenerate-chat[data-id="${message.id}"]`).forEach(btn => {
+                btn.addEventListener('click', () => regenerateChatMessage(message.id));
+            });
         }
 
         // Format message content with code highlighting
@@ -1630,7 +1799,70 @@ document.addEventListener('DOMContentLoaded', function() {
             generateWithPuter(message);
         }
 
-        // Render file tree
+        // Edit chat message
+        function editChatMessage(messageId) {
+            const message = state.chatHistory.find(m => m.id === messageId);
+            if (!message || message.role !== 'user') return;
+            
+            // Set input value to message content
+            chatInput.value = message.content;
+            mobileChatInput.value = message.content;
+            
+            // Focus on input
+            chatInput.focus();
+            
+            // Remove the message from history
+            deleteChatMessage(messageId);
+        }
+
+        // Copy chat message
+        function copyChatMessage(messageId) {
+            const message = state.chatHistory.find(m => m.id === messageId);
+            if (!message) return;
+            
+            navigator.clipboard.writeText(message.content)
+                .then(() => {
+                    showNotification('Message copied to clipboard');
+                })
+                .catch(err => {
+                    console.error('Failed to copy message: ', err);
+                    showNotification('Failed to copy message', 'error');
+                });
+        }
+
+        // Delete chat message
+        function deleteChatMessage(messageId) {
+            state.chatHistory = state.chatHistory.filter(m => m.id !== messageId);
+            
+            // Re-render chat messages
+            chatMessages.innerHTML = '';
+            mobileChatMessages.innerHTML = '';
+            state.chatHistory.forEach(msg => renderChatMessage(msg));
+            
+            // Save state
+            saveState();
+        }
+
+        // Regenerate chat message
+        function regenerateChatMessage(messageId) {
+            const message = state.chatHistory.find(m => m.id === messageId);
+            if (!message || message.role !== 'ai') return;
+            
+            // Find the user message that preceded this AI response
+            const messageIndex = state.chatHistory.findIndex(m => m.id === messageId);
+            if (messageIndex > 0) {
+                const userMessage = state.chatHistory[messageIndex - 1];
+                if (userMessage.role === 'user') {
+                    // Remove the AI message
+                    deleteChatMessage(messageId);
+                    
+                    // Regenerate response
+                    generateWithPuter(userMessage.content);
+                }
+            }
+        }
+
+        // Render file tree with edit icons
         function renderFileTree() {
             const root = state.files['/'];
             if (!root) return;
@@ -1639,10 +1871,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="file-item folder" data-path="/">
                     <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
                     <span class="file-name">${root.name}</span>
-                    <span class="file-actions ml-auto flex space-x-1 opacity-0 transition-opacity">
-                        <button class="add-file-btn p-1 text-xs rounded hover:bg-slate-700" title="Add File">
-                            <i class="fas fa-plus text-blue-400"></i>
-                        </button>
+                    <span class="file-edit-icon" title="Rename folder">
+                        <i class="fas fa-pencil-alt text-slate-400"></i>
                     </span>
                 </div>
                 <div class="file-tree ml-4">
@@ -1658,10 +1888,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="file-item ${isActive ? 'bg-slate-800' : ''}" data-path="${file.path}">
                             <span class="file-icon">${icon}</span>
                             <span class="file-name">${file.name}</span>
-                            <span class="file-actions ml-auto flex space-x-1 opacity-0 transition-opacity">
-                                <button class="delete-file-btn p-1 text-xs rounded hover:bg-slate-700" title="Delete">
-                                    <i class="fas fa-trash text-red-400"></i>
-                                </button>
+                            <span class="file-edit-icon" title="Rename file">
+                                <i class="fas fa-pencil-alt text-slate-400"></i>
                             </span>
                         </div>
                     `;
@@ -1689,36 +1917,82 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 
-                // Add event listeners for file actions
-                const deleteBtn = item.querySelector('.delete-file-btn');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', (e) => {
+                // Add event listeners for edit icons
+                const editIcon = item.querySelector('.file-edit-icon');
+                if (editIcon) {
+                    editIcon.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        confirmDeleteFile(path);
-                    });
-                }
-                
-                const addBtn = item.querySelector('.add-file-btn');
-                if (addBtn) {
-                    addBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        showFileModal('file');
+                        showRenameModal(path);
                     });
                 }
             });
+        }
+
+        // Show rename modal
+        function showRenameModal(path) {
+            const file = state.files[path];
+            if (!file) return;
             
-            // Show file actions on hover
-            document.querySelectorAll('.file-item').forEach(item => {
-                item.addEventListener('mouseenter', () => {
-                    const actions = item.querySelector('.file-actions');
-                    if (actions) actions.classList.remove('opacity-0');
-                });
-                
-                item.addEventListener('mouseleave', () => {
-                    const actions = item.querySelector('.file-actions');
-                    if (actions) actions.classList.add('opacity-0');
-                });
-            });
+            renameInput.value = file.name;
+            renameModal.classList.remove('hidden');
+            
+            // Store the current path for the rename operation
+            renameModal.dataset.path = path;
+        }
+
+        // Handle rename confirm
+        function handleRenameConfirm() {
+            const newName = renameInput.value.trim();
+            const path = renameModal.dataset.path;
+            
+            if (!newName) {
+                showNotification('Please enter a name', 'error');
+                return;
+            }
+            
+            const file = state.files[path];
+            if (!file) return;
+            
+            // Check if the new name is the same as the current name
+            if (newName === file.name) {
+                renameModal.classList.add('hidden');
+                return;
+            }
+            
+            // Check if a file/folder with the new name already exists
+            const newPath = `/${newName}`;
+            if (state.files[newPath]) {
+                showNotification('A file or folder with this name already exists', 'error');
+                return;
+            }
+            
+            // Update the file/folder name
+            file.name = newName;
+            
+            // If it's a file, update the extension if needed
+            if (file.type === 'file') {
+                const extension = newName.split('.').pop();
+                if (extension && !newName.endsWith(`.${extension}`)) {
+                    file.name = `${newName}.${extension}`;
+                }
+            }
+            
+            // Update UI
+            renderFileTree();
+            
+            // If the renamed file is the current file, update the editor
+            if (state.currentFile === path.split('/').pop()) {
+                state.currentFile = file.name;
+                updateCodeEditor();
+            }
+            
+            // Close modal
+            renameModal.classList.add('hidden');
+            
+            // Save state
+            saveState();
+            
+            showNotification('Name updated successfully');
         }
 
         // Get file icon based on file extension
