@@ -1,1581 +1,2316 @@
-<!doctype html>
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buddy AI - Your AI Coding Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+        
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #10b981;
+            --dark: #1e293b;
+            --darker: #0f172a;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --dark-gray: #334155;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--darker);
+            color: var(--light);
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+        
+        .mono {
+            font-family: 'Fira Code', monospace;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--dark);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Code editor styling */
+        .code-editor {
+            background-color: #0f172a;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .editor-header {
+            background-color: #1e293b;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .editor-content {
+            font-family: 'Fira Code', monospace;
+            padding: 1rem;
+            min-height: 300px;
+            outline: none;
+            white-space: pre-wrap;
+            tab-size: 2;
+        }
+        
+        /* Thinking animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .thinking-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--gray);
+            margin: 0 2px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        .thinking-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .thinking-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        /* Transition effects */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+        
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        /* File tree styling */
+        .file-tree {
+            padding-left: 1rem;
+        }
+        
+        .file-item {
+            padding: 0.25rem 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .file-icon {
+            margin-right: 0.5rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Panel resizing */
+        .resizable {
+            resize: horizontal;
+            overflow: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .resizable {
+                resize: none;
+            }
+        }
+        
+        /* Mobile drawer animations */
+        @keyframes slideInFromTop {
+            from {
+                transform: translateY(-100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideInFromBottom {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        
+        .mobile-drawer-top {
+            animation: slideInFromTop 0.3s ease-out;
+        }
+        
+        .mobile-drawer-bottom {
+            animation: slideInFromBottom 0.3s ease-out;
+        }
+        
+        /* Syntax highlighting */
+        .token.comment { color: #6a9955; }
+        .token.keyword { color: #569cd6; }
+        .token.string { color: #ce9178; }
+        .token.function { color: #dcdcaa; }
+        .token.tag { color: #569cd6; }
+        .token.attribute { color: #9cdcfe; }
+        .token.property { color: #9cdcfe; }
+        .token.selector { color: #d7ba7d; }
+        
+        /* Loading animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- App Container -->
+    <div id="app" class="flex flex-col flex-1">
+        <!-- Page 1: Welcome Screen -->
+        <div id="welcome-page" class="flex flex-col items-center justify-center flex-1 p-4 transition-all duration-300">
+            <header class="w-full fixed top-0 left-0 p-4 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm z-50">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                        <i class="fas fa-robot text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">Buddy AI</h1>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-moon text-yellow-300"></i>
+                </button>
+            </header>
+            
+            <main class="w-full max-w-2xl mx-auto mt-16 mb-8 px-4 flex flex-col items-center">
+                <h2 class="text-4xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Build Websites with AI</h2>
+                <p class="text-slate-300 text-center mb-8">Describe your website idea and Buddy AI will generate the code in real-time.</p>
+                
+                <div class="w-full relative mb-6">
+                    <textarea id="prompt-input" class="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all h-32 resize-none" placeholder="Describe the website you want to build..."></textarea>
+                    <button id="send-prompt" class="absolute right-3 bottom-3 p-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                
+                <div class="w-full flex flex-wrap justify-center gap-2 mb-8">
+                    <button class="prompt-suggestion px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors text-sm">Create a portfolio page</button>
+                    <button class="prompt-suggestion px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors text-sm">Build a weather app</button>
+                    <button class="prompt-suggestion px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors text-sm">Make a todo list with React</button>
+                    <button class="prompt-suggestion px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors text-sm">Design a landing page</button>
+                </div>
+                
+                <div class="flex items-center space-x-4 text-slate-400 text-sm">
+                    <span class="flex items-center"><i class="fas fa-bolt mr-1 text-emerald-400"></i> Instant generation</span>
+                    <span class="flex items-center"><i class="fas fa-code mr-1 text-blue-400"></i> Real-time preview</span>
+                    <span class="flex items-center"><i class="fas fa-cloud-download-alt mr-1 text-purple-400"></i> Export anytime</span>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Page 2: Builder Workspace (Hidden Initially) -->
+        <div id="builder-page" class="hidden flex-1 flex-col">
+            <!-- Header -->
+            <header class="w-full fixed top-0 left-0 p-2 sm:p-4 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm z-50 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <button id="menu-toggle" class="p-2 rounded-lg hover:bg-slate-700 transition-colors md:hidden">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="hidden md:flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                            <i class="fas fa-robot text-white"></i>
+                        </div>
+                        <h1 class="text-xl font-bold">Buddy AI</h1>
+                    </div>
+                    
+                    <div id="menu-dropdown" class="hidden absolute top-16 left-4 bg-slate-800 rounded-lg shadow-xl p-2 w-64 z-50 border border-slate-700">
+                        <div class="text-sm text-slate-300 px-2 py-1">Current Project: <span id="current-project-name-menu">My Project</span></div>
+                        <button id="new-project-btn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i> Create New Project
+                        </button>
+                        <button id="delete-project-btn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700 transition-colors text-red-400">
+                            <i class="fas fa-trash mr-2"></i> Delete Project
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 mx-4">
+                    <input id="project-name-input" type="text" value="My Project" class="w-full max-w-md bg-transparent border-b border-slate-600 focus:border-blue-500 outline-none text-center py-1">
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <button id="toggle-code" class="p-2 rounded-lg hover:bg-slate-700 transition-colors text-blue-400">
+                        <i class="fas fa-code"></i>
+                    </button>
+                    <button id="toggle-preview" class="p-2 rounded-lg hover:bg-slate-700 transition-colors text-emerald-400">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button id="export-pdf" class="p-2 rounded-lg hover:bg-slate-700 transition-colors text-purple-400 hidden sm:block">
+                        <i class="fas fa-file-pdf"></i>
+                    </button>
+                    <button id="theme-toggle-builder" class="p-2 rounded-lg hover:bg-slate-700 transition-colors hidden sm:block">
+                        <i class="fas fa-moon text-yellow-300"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Main Content Area -->
+            <div class="flex flex-1 pt-16 overflow-hidden">
+                <!-- Column 1: AI Chat Panel -->
+                <div id="chat-panel" class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:block resizable" style="min-width: 250px; max-width: 400px;">
+                    <div class="p-3 border-b border-slate-800 flex justify-between items-center">
+                        <h3 class="font-medium">Chat with Buddy</h3>
+                        <button id="minimize-chat" class="p-1 rounded hover:bg-slate-800 transition-colors">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-4">
+                        <!-- Chat messages will be added here -->
+                    </div>
+                    <div class="p-3 border-t border-slate-800">
+                        <div class="relative">
+                            <input id="chat-input" type="text" placeholder="Message Buddy..." class="w-full p-2 pl-3 pr-10 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none">
+                            <button id="send-chat" class="absolute right-2 top-2 text-blue-400">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Column 2: File Manager -->
+                <div id="file-panel" class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:block resizable" style="min-width: 200px; max-width: 350px;">
+                    <div class="p-3 border-b border-slate-800 flex justify-between items-center">
+                        <h3 class="font-medium">Project Files</h3>
+                        <div class="flex space-x-1">
+                            <button id="add-file" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add File">
+                                <i class="fas fa-file text-blue-400"></i>
+                            </button>
+                            <button id="add-folder" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add Folder">
+                                <i class="fas fa-folder text-yellow-400"></i>
+                            </button>
+                            <button id="minimize-files" class="p-1 rounded hover:bg-slate-800 transition-colors">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-2 border-b border-slate-800 flex space-x-2">
+                        <button id="save-project" class="flex-1 py-1 px-2 text-sm rounded bg-slate-800 hover:bg-slate-700 transition-colors">
+                            <i class="fas fa-save mr-1"></i> Save
+                        </button>
+                        <button id="download-project" class="flex-1 py-1 px-2 text-sm rounded bg-blue-600 hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-download mr-1"></i> Download
+                        </button>
+                    </div>
+                    <div id="file-tree" class="flex-1 overflow-y-auto p-2">
+                        <div class="file-item folder" data-path="/">
+                            <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
+                            <span class="file-name">my-project</span>
+                        </div>
+                        <div class="file-tree ml-4 hidden">
+                            <!-- Files will be added here dynamically -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Column 3: Main Content (Editor/Preview) -->
+                <div id="main-content" class="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+                    <!-- Editor Toolbar -->
+                    <div id="editor-toolbar" class="p-2 border-b border-slate-800 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <span id="current-file" class="text-sm font-mono px-2 py-1 bg-slate-800 rounded">index.html</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="copy-code" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Copy Code">
+                                <i class="fas fa-copy text-blue-400"></i>
+                            </button>
+                            <button id="undo" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Undo">
+                                <i class="fas fa-undo text-purple-400"></i>
+                            </button>
+                            <button id="redo" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Redo">
+                                <i class="fas fa-redo text-purple-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Code Editor -->
+                    <div id="code-editor-container" class="flex-1 overflow-auto">
+                        <div class="code-editor h-full">
+                            <div class="editor-header">
+                                <div class="flex space-x-2">
+                                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                </div>
+                                <div class="text-xs mono text-slate-400">index.html</div>
+                            </div>
+                            <pre id="code-editor" class="editor-content mono" contenteditable="true"><!-- Code will be inserted here --></pre>
+                        </div>
+                    </div>
+                    
+                    <!-- Preview Container -->
+                    <div id="preview-container" class="hidden flex-1 overflow-auto bg-white">
+                        <div class="p-2 border-b border-slate-200 flex justify-between items-center bg-slate-100">
+                            <div class="flex space-x-2">
+                                <button class="device-btn active px-2 py-1 text-xs rounded bg-white" data-device="desktop">
+                                    <i class="fas fa-desktop mr-1"></i> Desktop
+                                </button>
+                                <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="tablet">
+                                    <i class="fas fa-tablet-alt mr-1"></i> Tablet
+                                </button>
+                                <button class="device-btn px-2 py-1 text-xs rounded bg-white" data-device="mobile">
+                                    <i class="fas fa-mobile-alt mr-1"></i> Mobile
+                                </button>
+                            </div>
+                            <button id="refresh-preview" class="p-1 rounded hover:bg-slate-200 transition-colors">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <div id="preview-wrapper" class="w-full h-full flex justify-center p-4">
+                            <div id="preview-content" class="w-full max-w-4xl">
+                                <iframe id="website-preview" class="w-full h-full border border-slate-200 rounded-lg" srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;My Project&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;Your website will appear here&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Chat Drawer -->
+            <div id="mobile-chat-drawer" class="fixed top-16 left-0 right-0 bg-slate-900 border-b border-slate-800 z-40 shadow-xl hidden md:hidden">
+                <div class="p-3 flex justify-between items-center">
+                    <h3 class="font-medium">Chat with Buddy</h3>
+                    <button id="close-mobile-chat" class="p-1 rounded hover:bg-slate-800 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="mobile-chat-messages" class="h-64 overflow-y-auto p-3 space-y-4 border-t border-slate-800">
+                    <!-- Chat messages will be added here -->
+                </div>
+                <div class="p-3 border-t border-slate-800">
+                    <div class="relative">
+                        <input id="mobile-chat-input" type="text" placeholder="Message Buddy..." class="w-full p-2 pl-3 pr-10 rounded-lg bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none">
+                        <button id="send-mobile-chat" class="absolute right-2 top-2 text-blue-400">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile File Drawer -->
+            <div id="mobile-file-drawer" class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-40 shadow-xl hidden md:hidden">
+                <div class="p-3 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="font-medium">Project Files</h3>
+                    <div class="flex space-x-1">
+                        <button id="mobile-add-file" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add File">
+                            <i class="fas fa-file text-blue-400"></i>
+                        </button>
+                        <button id="mobile-add-folder" class="p-1 rounded hover:bg-slate-800 transition-colors" title="Add Folder">
+                            <i class="fas fa-folder text-yellow-400"></i>
+                        </button>
+                        <button id="close-mobile-files" class="p-1 rounded hover:bg-slate-800 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-2 border-b border-slate-800 flex space-x-2">
+                    <button id="mobile-save-project" class="flex-1 py-1 px-2 text-sm rounded bg-slate-800 hover:bg-slate-700 transition-colors">
+                        <i class="fas fa-save mr-1"></i> Save
+                    </button>
+                    <button id="mobile-download-project" class="flex-1 py-1 px-2 text-sm rounded bg-blue-600 hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-download mr-1"></i> Download
+                    </button>
+                </div>
+                <div id="mobile-file-tree" class="h-64 overflow-y-auto p-2">
+                    <div class="file-item folder" data-path="/">
+                        <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
+                        <span class="file-name">my-project</span>
+                    </div>
+                    <div class="file-tree ml-4 hidden">
+                        <!-- Files will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Panel Toggles -->
+            <div class="fixed bottom-4 right-4 flex flex-col space-y-2 z-50 md:hidden">
+                <button id="open-mobile-chat" class="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center shadow-lg">
+                    <i class="fas fa-comment text-white"></i>
+                </button>
+                <button id="open-mobile-files" class="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors flex items-center justify-center shadow-lg">
+                    <i class="fas fa-folder-open text-white"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Confirmation Modal -->
+        <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-slate-800 rounded-lg p-6 max-w-md w-full border border-slate-700">
+                <h3 class="text-xl font-bold mb-4" id="modal-title">Confirm Action</h3>
+                <p class="text-slate-300 mb-6" id="modal-message">Are you sure you want to perform this action?</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="modal-cancel" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button id="modal-confirm" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors">Confirm</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New File/Folder Modal -->
+        <div id="file-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-slate-800 rounded-lg p-6 max-w-md w-full border border-slate-700">
+                <h3 class="text-xl font-bold mb-4" id="file-modal-title">Create New File</h3>
+                <div class="mb-4">
+                    <label class="block text-sm text-slate-300 mb-1">Name</label>
+                    <input id="file-name-input" type="text" class="w-full p-2 rounded bg-slate-700 border border-slate-600 focus:border-blue-500 outline-none">
+                </div>
+                <div class="mb-4" id="file-type-container">
+                    <label class="block text-sm text-slate-300 mb-1">Type</label>
+                    <select id="file-type-select" class="w-full p-2 rounded bg-slate-700 border border-slate-600 focus:border-blue-500 outline-none">
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                        <option value="js">JavaScript</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="file-modal-cancel" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button id="file-modal-confirm" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            currentPage: 'welcome',
+            theme: 'dark',
+            projectName: 'My Project',
+            currentFile: 'index.html',
+            currentFileContent: '',
+            files: {
+                '/': {
+                    type: 'folder',
+                    name: 'my-project',
+                    path: '/',
+                    children: ['/index.html', '/style.css', '/script.js']
+                },
+                '/index.html': {
+                    type: 'file',
+                    name: 'index.html',
+                    path: '/index.html',
+                    content: '<!DOCTYPE html>\n<html>\n<head>\n    <title>My Project</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Welcome to My Project</h1>\n    <p>Your website will be generated here.</p>\n    <script src="script.js"><\/script>\n</body>\n</html>'
+                },
+                '/style.css': {
+                    type: 'file',
+                    name: 'style.css',
+                    path: '/style.css',
+                    content: '/* Add your styles here */\nbody {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n    background-color: #f5f5f5;\n    color: #333;\n}\n\nh1 {\n    color: #2c3e50;\n}'
+                },
+                '/script.js': {
+                    type: 'file',
+                    name: 'script.js',
+                    path: '/script.js',
+                    content: '// Add your JavaScript here\ndocument.addEventListener(\'DOMContentLoaded\', function() {\n    console.log(\'Website loaded successfully!\');\n});'
+                }
+            },
+            chatHistory: [],
+            fileHistory: [],
+            codeHistory: [],
+            undoStack: [],
+            redoStack: []
+        };
+
+        // DOM Elements
+        const welcomePage = document.getElementById('welcome-page');
+        const builderPage = document.getElementById('builder-page');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeToggleBuilder = document.getElementById('theme-toggle-builder');
+        const promptInput = document.getElementById('prompt-input');
+        const sendPrompt = document.getElementById('send-prompt');
+        const promptSuggestions = document.querySelectorAll('.prompt-suggestion');
+        const menuToggle = document.getElementById('menu-toggle');
+        const menuDropdown = document.getElementById('menu-dropdown');
+        const projectNameInput = document.getElementById('project-name-input');
+        const currentProjectNameMenu = document.getElementById('current-project-name-menu');
+        const newProjectBtn = document.getElementById('new-project-btn');
+        const deleteProjectBtn = document.getElementById('delete-project-btn');
+        const toggleCode = document.getElementById('toggle-code');
+        const togglePreview = document.getElementById('toggle-preview');
+        const exportPdf = document.getElementById('export-pdf');
+        const chatPanel = document.getElementById('chat-panel');
+        const minimizeChat = document.getElementById('minimize-chat');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendChat = document.getElementById('send-chat');
+        const filePanel = document.getElementById('file-panel');
+        const minimizeFiles = document.getElementById('minimize-files');
+        const addFile = document.getElementById('add-file');
+        const addFolder = document.getElementById('add-folder');
+        const saveProject = document.getElementById('save-project');
+        const downloadProject = document.getElementById('download-project');
+        const fileTree = document.getElementById('file-tree');
+        const editorToolbar = document.getElementById('editor-toolbar');
+        const currentFile = document.getElementById('current-file');
+        const copyCode = document.getElementById('copy-code');
+        const undo = document.getElementById('undo');
+        const redo = document.getElementById('redo');
+        const codeEditorContainer = document.getElementById('code-editor-container');
+        const codeEditor = document.getElementById('code-editor');
+        const previewContainer = document.getElementById('preview-container');
+        const deviceBtns = document.querySelectorAll('.device-btn');
+        const refreshPreview = document.getElementById('refresh-preview');
+        const websitePreview = document.getElementById('website-preview');
+        const mobileChatDrawer = document.getElementById('mobile-chat-drawer');
+        const closeMobileChat = document.getElementById('close-mobile-chat');
+        const mobileChatMessages = document.getElementById('mobile-chat-messages');
+        const mobileChatInput = document.getElementById('mobile-chat-input');
+        const sendMobileChat = document.getElementById('send-mobile-chat');
+        const mobileFileDrawer = document.getElementById('mobile-file-drawer');
+        const closeMobileFiles = document.getElementById('close-mobile-files');
+        const mobileAddFile = document.getElementById('mobile-add-file');
+        const mobileAddFolder = document.getElementById('mobile-add-folder');
+        const mobileSaveProject = document.getElementById('mobile-save-project');
+        const mobileDownloadProject = document.getElementById('mobile-download-project');
+        const mobileFileTree = document.getElementById('mobile-file-tree');
+        const openMobileChat = document.getElementById('open-mobile-chat');
+        const openMobileFiles = document.getElementById('open-mobile-files');
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalConfirm = document.getElementById('modal-confirm');
+        const fileModal = document.getElementById('file-modal');
+        const fileModalTitle = document.getElementById('file-modal-title');
+        const fileNameInput = document.getElementById('file-name-input');
+        const fileTypeContainer = document.getElementById('file-type-container');
+        const fileTypeSelect = document.getElementById('file-type-select');
+        const fileModalCancel = document.getElementById('file-modal-cancel');
+        const fileModalConfirm = document.getElementById('file-modal-confirm');
+
+        // Initialize the application
+        function init() {
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Load saved state from localStorage if available
+            loadState();
+            
+            // Render initial UI
+            renderFileTree();
+            updateCodeEditor();
+            updatePreview();
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Theme toggles
+            themeToggle.addEventListener('click', toggleTheme);
+            if (themeToggleBuilder) themeToggleBuilder.addEventListener('click', toggleTheme);
+            
+            // Send prompt
+            sendPrompt.addEventListener('click', handleSendPrompt);
+            promptInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendPrompt();
+                }
+            });
+            
+            // Prompt suggestions
+            promptSuggestions.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    promptInput.value = btn.textContent;
+                });
+            });
+            
+            // Menu toggle
+            menuToggle.addEventListener('click', () => {
+                menuDropdown.classList.toggle('hidden');
+            });
+            
+            // Project name input
+            projectNameInput.addEventListener('change', (e) => {
+                state.projectName = e.target.value;
+                currentProjectNameMenu.textContent = e.target.value;
+                saveState();
+            });
+            
+            // New project button
+            newProjectBtn.addEventListener('click', createNewProject);
+            
+            // Delete project button
+            deleteProjectBtn.addEventListener('click', confirmDeleteProject);
+            
+            // Toggle code/preview
+            toggleCode.addEventListener('click', () => {
+                codeEditorContainer.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                toggleCode.classList.add('text-blue-400');
+                togglePreview.classList.remove('text-emerald-400');
+            });
+            
+            togglePreview.addEventListener('click', () => {
+                codeEditorContainer.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                togglePreview.classList.add('text-emerald-400');
+                toggleCode.classList.remove('text-blue-400');
+                updatePreview();
+            });
+            
+            // Export PDF
+            exportPdf.addEventListener('click', exportChatToPdf);
+            
+            // Chat panel
+            minimizeChat.addEventListener('click', () => {
+                chatPanel.classList.toggle('hidden');
+            });
+            
+            sendChat.addEventListener('click', handleSendChat);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSendChat();
+                }
+            });
+            
+            // File panel
+            minimizeFiles.addEventListener('click', () => {
+                filePanel.classList.toggle('hidden');
+            });
+            
+            addFile.addEventListener('click', () => showFileModal('file'));
+            addFolder.addEventListener('click', () => showFileModal('folder'));
+            
+            saveProject.addEventListener('click', saveProjectToStorage);
+            downloadProject.addEventListener('click', downloadProjectAsZip);
+            
+            // Code editor
+            copyCode.addEventListener('click', copyCodeToClipboard);
+            undo.addEventListener('click', undoCodeEdit);
+            redo.addEventListener('click', redoCodeEdit);
+            
+            codeEditor.addEventListener('input', (e) => {
+                state.files[`/${state.currentFile}`].content = e.target.textContent;
+                updatePreview();
+                saveState();
+            });
+            
+            // Preview
+            deviceBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    deviceBtns.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    const device = e.target.dataset.device;
+                    setPreviewDevice(device);
+                });
+            });
+            
+            refreshPreview.addEventListener('click', updatePreview);
+            
+            // Mobile drawers
+            openMobileChat.addEventListener('click', () => {
+                mobileChatDrawer.classList.remove('hidden');
+                mobileChatDrawer.classList.add('mobile-drawer-top');
+            });
+            
+            closeMobileChat.addEventListener('click', () => {
+                mobileChatDrawer.classList.add('hidden');
+            });
+            
+            sendMobileChat.addEventListener('click', handleSendChat);
+            mobileChatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSendChat();
+                }
+            });
+            
+            openMobileFiles.addEventListener('click', () => {
+                mobileFileDrawer.classList.remove('hidden');
+                mobileFileDrawer.classList.add('mobile-drawer-bottom');
+            });
+            
+            closeMobileFiles.addEventListener('click', () => {
+                mobileFileDrawer.classList.add('hidden');
+            });
+            
+            mobileAddFile.addEventListener('click', () => showFileModal('file'));
+            mobileAddFolder.addEventListener('click', () => showFileModal('folder'));
+            
+            mobileSaveProject.addEventListener('click', saveProjectToStorage);
+            mobileDownloadProject.addEventListener('click', downloadProjectAsZip);
+            
+            // Modals
+            modalCancel.addEventListener('click', () => {
+                confirmationModal.classList.add('hidden');
+            });
+            
+            fileModalCancel.addEventListener('click', () => {
+                fileModal.classList.add('hidden');
+            });
+            
+            fileModalConfirm.addEventListener('click', handleFileModalConfirm);
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!menuToggle.contains(e.target) && !menuDropdown.contains(e.target)) {
+                    menuDropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.classList.toggle('dark');
+            
+            // Update UI based on theme
+            if (state.theme === 'dark') {
+                document.body.style.backgroundColor = '#0f172a';
+                document.body.style.color = '#f8fafc';
+                if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon text-yellow-300"></i>';
+                if (themeToggleBuilder) themeToggleBuilder.innerHTML = '<i class="fas fa-moon text-yellow-300"></i>';
+            } else {
+                document.body.style.backgroundColor = '#f8fafc';
+                document.body.style.color = '#0f172a';
+                if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun text-yellow-500"></i>';
+                if (themeToggleBuilder) themeToggleBuilder.innerHTML = '<i class="fas fa-sun text-yellow-500"></i>';
+            }
+            
+            saveState();
+        }
+
+        // Handle send prompt
+        function handleSendPrompt() {
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+            
+            // Enhance the prompt with keywords
+            const enhancedPrompt = `Create a modern, colorful, UI/UX rich, futuristic ${prompt}`;
+            
+            // Switch to builder page
+            welcomePage.classList.add('hidden');
+            builderPage.classList.remove('hidden');
+            state.currentPage = 'builder';
+            
+            // Add user message to chat
+            addChatMessage('user', prompt);
+            
+            // Use Puter AI to generate response
+            generateWithPuter(enhancedPrompt);
+            
+            // Clear input
+            promptInput.value = '';
+        }
+
+        // Generate with Puter AI
+        async function generateWithPuter(prompt) {
+            // Show thinking animation
+            const thinkingId = addThinkingAnimation();
+            
+            try {
+                // Call Puter AI API
+                const response = await fetch('https://api.puter.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful AI coding assistant that generates complete HTML, CSS, and JavaScript code for websites. Always respond with complete, runnable code examples.'
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        max_tokens: 1500
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Remove thinking animation
+                removeThinkingAnimation(thinkingId);
+                
+                if (data.choices && data.choices.length > 0) {
+                    const aiResponse = data.choices[0].message.content;
+                    
+                    // Add AI message to chat
+                    addChatMessage('ai', aiResponse);
+                    
+                    // Process the AI response to extract and create files
+                    processAIResponse(aiResponse);
+                } else {
+                    throw new Error('Invalid response from AI service');
+                }
+            } catch (error) {
+                console.error('Error calling Puter AI:', error);
+                
+                // Remove thinking animation
+                removeThinkingAnimation(thinkingId);
+                
+                // Add error message to chat
+                addChatMessage('ai', 'Sorry, I encountered an error while processing your request. Please try again.');
+                
+                // Show error notification
+                showNotification('Error connecting to AI service. Using demo response instead.', 'error');
+                
+                // Use demo response as fallback
+                useDemoResponse(prompt);
+            }
+        }
+
+        // Use demo response when API fails
+        function useDemoResponse(prompt) {
+            // Create demo response based on prompt
+            let htmlContent = '';
+            let cssContent = '';
+            let jsContent = '';
+            
+            if (prompt.toLowerCase().includes('portfolio')) {
+                htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Buddy AI</title>
-  <script src="https://js.puter.com/v2/"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    :root {
-      --bg-primary: #0f1117;
-      --bg-secondary: #161b22;
-      --bg-tertiary: #1d232c;
-      --accent-primary: #6aa6ff;
-      --accent-secondary: #9b6bff;
-      --text-primary: #f0f6fc;
-      --text-secondary: #8b949e;
-      --border: #30363d;
-      --success: #3ad29f;
-      --warning: #ffcc66;
-      --error: #ff6b6b;
-      --control-height: 44px;
-      --sidebar-width: 280px;
-      --radius: 12px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-      background-image: 
-        radial-gradient(ellipse at 10% -10%, rgba(106, 166, 255, 0.1), transparent 50%),
-        radial-gradient(ellipse at 90% -20%, rgba(155, 107, 255, 0.08), transparent 50%);
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      z-index: 100;
-      transition: transform 0.3s ease;
-    }
-
-    .sidebar-header {
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 700;
-      font-size: 20px;
-    }
-
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .close-sidebar {
-      display: none;
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 20px;
-      cursor: pointer;
-    }
-
-    .sidebar-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-    }
-
-    .sidebar-section {
-      margin-bottom: 24px;
-    }
-
-    .section-title {
-      font-size: 14px;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-      letter-spacing: 0.5px;
-    }
-
-    .new-chat-btn {
-      width: 100%;
-      padding: 12px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text-primary);
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .new-chat-btn:hover {
-      background: rgba(106, 166, 255, 0.1);
-      border-color: var(--accent-primary);
-    }
-
-    .conversation-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .conversation-item {
-      padding: 12px;
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .conversation-item.active {
-      background: rgba(106, 166, 255, 0.15);
-    }
-
-    .conversation-item:hover:not(.active) {
-      background: var(--bg-tertiary);
-    }
-
-    .conversation-icon {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .conversation-name {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .conversation-actions {
-      display: flex;
-      gap: 6px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .conversation-item:hover .conversation-actions {
-      opacity: 1;
-    }
-
-    .action-btn {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-size: 14px;
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .action-btn:hover {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
-    }
-
-    /* Main Content */
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      position: relative;
-    }
-
-    .topbar {
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(22, 27, 34, 0.8);
-      backdrop-filter: blur(8px);
-      z-index: 10;
-    }
-
-    .toggle-sidebar {
-      display: none;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-
-    .current-conversation {
-      font-weight: 600;
-      font-size: 18px;
-    }
-
-    .chat-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .message {
-      max-width: 800px;
-      width: 100%;
-      display: flex;
-      gap: 16px;
-      padding: 16px;
-      border-radius: var(--radius);
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .message.user {
-      align-self: flex-end;
-      border-left: 3px solid var(--accent-primary);
-    }
-
-    .message.assistant {
-      border-left: 3px solid var(--success);
-    }
-
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .user .avatar {
-      background: rgba(106, 166, 255, 0.15);
-      color: var(--accent-primary);
-    }
-
-    .assistant .avatar {
-      background: rgba(58, 210, 159, 0.15);
-      color: var(--success);
-    }
-
-    .message-content {
-      flex: 1;
-    }
-
-    .message-header {
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .message-body {
-      line-height: 1.6;
-    }
-
-    .message-body pre {
-      background: rgba(16, 20, 26, 0.8);
-      border-radius: 8px;
-      padding: 16px;
-      overflow-x: auto;
-      margin: 12px 0;
-      font-family: 'Fira Code', monospace;
-      font-size: 14px;
-      border: 1px solid var(--border);
-    }
-
-    .message-body code {
-      background: rgba(106, 166, 255, 0.1);
-      color: var(--accent-primary);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Fira Code', monospace;
-      font-size: 14px;
-    }
-
-    .message-body a {
-      color: var(--accent-primary);
-      text-decoration: none;
-    }
-
-    .message-body a:hover {
-      text-decoration: underline;
-    }
-
-    .message-body ul,
-    .message-body ol {
-      padding-left: 20px;
-      margin: 8px 0;
-    }
-
-    .message-body li {
-      margin-bottom: 4px;
-    }
-
-    .message-body blockquote {
-      border-left: 3px solid var(--border);
-      padding-left: 12px;
-      margin: 8px 0;
-      color: var(--text-secondary);
-    }
-
-    .composer {
-      padding: 16px 24px;
-      background: rgba(22, 27, 34, 0.8);
-      backdrop-filter: blur(8px);
-      border-top: 1px solid var(--border);
-    }
-
-    .composer-inner {
-      max-width: 800px;
-      margin: 0 auto;
-      display: flex;
-      gap: 12px;
-    }
-
-    .composer textarea {
-      flex: 1;
-      min-height: var(--control-height);
-      padding: 12px 16px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 15px;
-      resize: none;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .composer textarea:focus {
-      border-color: var(--accent-primary);
-    }
-
-    .send-btn {
-      width: var(--control-height);
-      height: var(--control-height);
-      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      border: none;
-      border-radius: var(--radius);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .send-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(106, 166, 255, 0.25);
-    }
-
-    .send-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .send-btn.stop {
-      background: linear-gradient(135deg, var(--error), #cc5555);
-    }
-
-    .attachments {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      max-width: 800px;
-      margin: 8px auto 0;
-    }
-
-    .attachment-chip {
-      padding: 6px 12px;
-      background: var(--bg-tertiary);
-      border: 1px dashed var(--border);
-      border-radius: var(--radius);
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .attachment-chip i {
-      cursor: pointer;
-    }
-
-    .thinking-toggle {
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 6px 12px;
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 13px;
-      display: inline-block;
-      margin-top: 8px;
-    }
-
-    .thinking-panel-inline {
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px;
-      margin-top: 8px;
-    }
-
-    .thinking-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 0;
-      font-size: 14px;
-    }
-
-    .thinking-row:not(:last-child) {
-      border-bottom: 1px solid var(--border);
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-
-    .dot.pending {
-      background: var(--warning);
-      animation: pulse 1s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.7; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    .dot.done {
-      background: var(--success);
-    }
-
-    .dot.error {
-      background: var(--error);
-    }
-
-    .model-list {
-      display: grid;
-      gap: 8px;
-      padding: 8px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }
-
-    .model-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .model-row:hover {
-      background: var(--bg-tertiary);
-    }
-
-    .model-row input[type="checkbox"] {
-      margin: 0;
-    }
-
-    .model-row.active {
-      background: rgba(106, 166, 255, 0.1);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .sidebar {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        transform: translateX(-100%);
-      }
-
-      .sidebar.active {
-        transform: translateX(0);
-      }
-
-      .close-sidebar {
-        display: block;
-      }
-
-      .toggle-sidebar {
-        display: flex;
-      }
-
-      .composer-inner {
-        gap: 8px;
-      }
-
-      .chat-container {
-        padding: 16px;
-      }
-
-      .composer {
-        padding: 12px 16px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio - ${state.projectName}</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="logo">
-        <div class="logo-icon">
-          <i class="fas fa-robot"></i>
-        </div>
-        <span>Buddy AI</span>
-      </div>
-      <button class="close-sidebar">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
+    <header>
+        <nav>
+            <div class="logo">${state.projectName}</div>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
     
-    <div class="sidebar-content">
-      <div class="sidebar-section">
-        <button class="new-chat-btn" id="btnNewChat">
-          <i class="fas fa-plus"></i>
-          New Chat
-        </button>
-      </div>
-      
-      <div class="sidebar-section">
-        <div class="section-title">Conversations</div>
-        <div class="conversation-list" id="convList"></div>
-      </div>
-      
-      <div class="sidebar-section">
-        <div class="section-title">Models</div>
-        <div class="model-list" id="modelList"></div>
-      </div>
-    </div>
-  </aside>
-  
-  <!-- Main Content -->
-  <main class="main-content">
-    <div class="topbar">
-      <button class="toggle-sidebar" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-      </button>
-      <div class="current-conversation" id="currentConversation">New Chat</div>
-    </div>
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-content">
+                <h1>Creative Developer & Designer</h1>
+                <p>I create amazing digital experiences</p>
+                <button class="cta-button">View My Work</button>
+            </div>
+        </section>
+        
+        <section id="about">
+            <h2>About Me</h2>
+            <p>I'm a passionate developer with expertise in modern web technologies.</p>
+        </section>
+        
+        <section id="projects">
+            <h2>My Projects</h2>
+            <div class="projects-grid">
+                <div class="project-card">
+                    <h3>Project 1</h3>
+                    <p>Description of project 1</p>
+                </div>
+                <div class="project-card">
+                    <h3>Project 2</h3>
+                    <p>Description of project 2</p>
+                </div>
+                <div class="project-card">
+                    <h3>Project 3</h3>
+                    <p>Description of project 3</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="contact">
+            <h2>Get In Touch</h2>
+            <form>
+                <input type="text" placeholder="Your Name">
+                <input type="email" placeholder="Your Email">
+                <textarea placeholder="Your Message"></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </section>
+    </main>
     
-    <div class="chat-container" id="chat"></div>
+    <footer>
+        <p>&copy; ${new Date().getFullYear()} ${state.projectName}. All rights reserved.</p>
+    </footer>
     
-    <div class="composer">
-      <div class="composer-inner">
-        <label class="attach-btn" id="attachBtn" title="Attach file">
-          <i class="fas fa-paperclip"></i>
-          <input id="attachInput" type="file" accept="image/*,.txt,.md,.json,application/json,text/plain" style="display: none;">
-        </label>
-        <textarea id="query" placeholder="Ask Buddy anything..."></textarea>
-        <button class="send-btn" id="sendBtn">
-          <i class="fas fa-paper-plane"></i>
-        </button>
-      </div>
-      <div id="attachments" class="attachments"></div>
-    </div>
-  </main>
+    <script src="script.js"><\/script>
+</body>
+</html>`;
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script>
-    // UI Elements
-    const chatEl = document.getElementById('chat');
-    const queryEl = document.getElementById('query');
-    const sendBtn = document.getElementById('sendBtn');
-    const attachInput = document.getElementById('attachInput');
-    const attachmentsEl = document.getElementById('attachments');
-    const sidebar = document.querySelector('.sidebar');
-    const toggleSidebarBtn = document.getElementById('toggleSidebar');
-    const closeSidebarBtn = document.querySelector('.close-sidebar');
-    const btnNewChat = document.getElementById('btnNewChat');
-    const convList = document.getElementById('convList');
-    const modelList = document.getElementById('modelList');
-    const currentConversationEl = document.getElementById('currentConversation');
+                cssContent = `/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    // State
-    let conversations = [];
-    let activeConversationId = null;
-    let history = [];
-    let selectedModels = null;
-    let hasUserModelSelection = false;
-    let pendingImage = null;
-    let pendingTextFile = null;
-    let inFlightAbort = null;
+body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
 
-    // Initialize supported models
-    const CANDIDATE_MODELS = [
-      'gpt-4o', 'gpt-4.1', 'deepseek-chat', 'x-ai/grok-4',
-      'meta-llama/llama-3.3-70b-instruct', 'claude-3-5-sonnet'
-    ];
-    let supportedModels = new Set();
+/* Header & Navigation */
+header {
+    background: rgba(255, 255, 255, 0.95);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
 
-    // Helper functions
-    function escapeHtml(str) {
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 5%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #3b82f6;
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+nav a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+nav a:hover {
+    color: #3b82f6;
+}
+
+/* Hero Section */
+.hero {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.hero-content p {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.cta-button {
+    background: #f8fafc;
+    color: #3b82f6;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.cta-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Sections */
+section {
+    padding: 5rem 5%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+/* Projects Grid */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.project-card {
+    background: #f8fafc;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+
+.project-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Contact Form */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+input, textarea {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: inherit;
+}
+
+button[type="submit"] {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+/* Footer */
+footer {
+    background: #1e293b;
+    color: white;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    nav {
+        flex-direction: column;
+        gap: 1rem;
     }
-
-    function formatMessageContent(content) {
-      return content
-        .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => `<pre><code class="language-${(lang||'')}">${escapeHtml(code)}</code></pre>`)
-        .replace(/`([^`]+)`/g, (m, c) => `<code>${escapeHtml(c)}</code>`)
-        .replace(/__([^_]+)__/g, '<u>$1</u>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/(^|\s)\*([^*]+)\*(?=\s|$)/g, '$1<em>$2</em>')
-        .replace(/\n\n+/g, '</p><p>')
-        .replace(/\n/g, '<br/>');
+    
+    .hero-content h1 {
+        font-size: 2.5rem;
     }
-
-    function buildMessages(historyArr, userQuery) {
-      const msgs = [
-        { role: 'system', content: 'You are an expert assistant. Provide accurate, concise, well-structured answers. Do not truncate your output. Return complete results.' }
-      ];
-      if (Array.isArray(historyArr)) {
-        for (const m of historyArr) {
-          if (!m || !m.role || !m.content) continue;
-          if (m.role === 'user' || m.role === 'assistant' || m.role === 'system') {
-            msgs.push({ role: m.role, content: String(m.content) });
-          }
-        }
-      }
-      if (userQuery && userQuery.trim()) {
-        msgs.push({ role: 'user', content: userQuery });
-      }
-      return msgs;
+    
+    section {
+        padding: 3rem 5%;
     }
+}`;
 
-    function isErrorText(text) {
-      return /^Error:/i.test(String(text || '').trim());
-    }
-
-    function isBlank(text) {
-      return !String(text || '').trim();
-    }
-
-    function extractText(resp) {
-      if (!resp) return '';
-      if (typeof resp === 'string') return resp;
-      if (resp.message?.content) return resp.message.content;
-      if (Array.isArray(resp.choices)) {
-        const ch = resp.choices[0];
-        if (ch?.message?.content) return ch.message.content;
-        if (ch?.text) return ch.text;
-      }
-      if (resp.output_text) return resp.output_text;
-      if (resp.text) return resp.text;
-      if (typeof resp.content === 'string') return resp.content;
-      try { return JSON.stringify(resp); } catch { return String(resp); }
-    }
-
-    async function askModel(messages, modelId) {
-      try {
-        const payload = modelId ? { model: modelId, messages } : { messages };
-        const resp = await puter.ai.chat(payload);
-        return extractText(resp);
-      } catch (e1) {
-        try {
-          const resp = await puter.ai.chat(messages, modelId ? { model: modelId } : undefined);
-          return extractText(resp);
-        } catch (e2) {
-          console.error(`Error with model ${modelId}:`, e2);
-          return `Error: ${e2.message || "Failed to get response"}`;
-        }
-      }
-    }
-
-    // Message rendering
-    function renderMessage(role, content, index) {
-      const message = document.createElement('div');
-      message.classList.add('message', role);
-      
-      const avatar = document.createElement('div');
-      avatar.className = 'avatar';
-      avatar.innerHTML = `<i class="fas fa-${role === 'user' ? 'user' : 'robot'}"></i>`;
-      
-      const messageContent = document.createElement('div');
-      messageContent.className = 'message-content';
-      
-      const messageHeader = document.createElement('div');
-      messageHeader.className = 'message-header';
-      messageHeader.textContent = role === 'user' ? 'You' : (history[index]?.meta?.label || 'Buddy AI');
-      
-      const messageBody = document.createElement('div');
-      messageBody.className = 'message-body';
-      messageBody.innerHTML = `<p>${formatMessageContent(content)}</p>`;
-      
-      messageContent.appendChild(messageHeader);
-      messageContent.appendChild(messageBody);
-      
-      // Add thinking toggle for latest user message
-      if (role === 'user' && index === history.length - 1) {
-        const thinkToggle = document.createElement('button');
-        thinkToggle.id = `think-toggle-${index}`;
-        thinkToggle.className = 'thinking-toggle';
-        thinkToggle.textContent = 'Thinking ▸ 0s';
-        
-        const thinkPanel = document.createElement('div');
-        thinkPanel.id = `think-panel-${index}`;
-        thinkPanel.className = 'thinking-panel-inline hidden';
-        
-        const contentWrap = document.createElement('div');
-        contentWrap.id = `think-content-${index}`;
-        thinkPanel.appendChild(contentWrap);
-        
-        thinkToggle.onclick = () => toggleThinking(index);
-        messageContent.appendChild(thinkToggle);
-        messageContent.appendChild(thinkPanel);
-      }
-      
-      // Add toolbar with actions
-      const toolbar = document.createElement('div');
-      toolbar.className = 'toolbar';
-      
-      if (role === 'user') {
-        toolbar.innerHTML = `
-          <button class="action-btn" title="Copy" onclick="navigator.clipboard.writeText('${escapeHtml(content)}')">
-            <i class="fas fa-copy"></i>
-          </button>
-          <button class="action-btn" title="Edit" onclick="editPrompt(${index})">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="action-btn" title="Delete" onclick="deletePrompt(${index})">
-            <i class="fas fa-trash"></i>
-          </button>
-        `;
-      } else {
-        toolbar.innerHTML = `
-          <button class="action-btn" title="Copy" onclick="navigator.clipboard.writeText('${escapeHtml(content)}')">
-            <i class="fas fa-copy"></i>
-          </button>
-        `;
-        
-        // Add preview button if there's code
-        const codeBlock = content.match(/```(\w+)?\n([\s\S]*?)```/);
-        if (codeBlock) {
-          const previewBtn = document.createElement('button');
-          previewBtn.className = 'action-btn';
-          previewBtn.title = 'Preview';
-          previewBtn.innerHTML = '<i class="fas fa-eye"></i>';
-          previewBtn.onclick = () => previewCode(codeBlock[2], codeBlock[1]);
-          toolbar.appendChild(previewBtn);
-        }
-      }
-      
-      messageContent.appendChild(toolbar);
-      
-      message.appendChild(avatar);
-      message.appendChild(messageContent);
-      chatEl.appendChild(message);
-      message.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      
-      return messageBody;
-    }
-
-    // Thinking UI
-    const runMeta = new Map();
-    const runTimers = new Map();
-
-    function secondsBetween(startMs, endMs) {
-      if (!startMs) return 0;
-      const end = endMs || Date.now();
-      return Math.max(0, Math.round((end - startMs) / 1000));
-    }
-
-    function updateThinkingToggleText(index, isOpen) {
-      const meta = runMeta.get(index);
-      const secs = secondsBetween(meta?.startMs, meta?.endMs);
-      const caret = isOpen ? '▾' : '▸';
-      return `Thinking ${caret} ${secs}s`;
-    }
-
-    function renderInlineThinking(index) {
-      const panel = document.getElementById(`think-content-${index}`);
-      if (!panel) return;
-      panel.innerHTML = '';
-      const meta = runMeta.get(index);
-      
-      if (!meta) return;
-      
-      // Models used header
-      const header = document.createElement('div');
-      header.className = 'small muted';
-      header.innerHTML = `Models used: <em>${(meta.models||[]).join(', ') || 'default'}</em>`;
-      panel.appendChild(header);
-      
-      // Each model thought
-      for (const m of meta.models || []) {
-        const wrap = document.createElement('div');
-        wrap.className = 'thinking-row';
-        
-        const dot = document.createElement('div');
-        dot.className = 'dot done';
-        
-        const title = document.createElement('div');
-        title.innerHTML = `<strong>${m}</strong>`;
-        
-        const body = document.createElement('div');
-        const text = String((meta.results && meta.results[m]) || '').slice(0, 1200);
-        body.innerHTML = `<em>${escapeHtml(text || 'thinking…')}</em>`;
-        
-        wrap.appendChild(dot);
-        wrap.appendChild(title);
-        wrap.appendChild(body);
-        panel.appendChild(wrap);
-      }
-      
-      // How Buddy combined
-      const combine = document.createElement('div');
-      combine.className = 'thinking-row';
-      
-      const combineDot = document.createElement('div');
-      combineDot.className = 'dot done';
-      
-      const combineTitle = document.createElement('div');
-      combineTitle.innerHTML = `<strong>Buddy combine</strong>`;
-      
-      const combineBody = document.createElement('div');
-      combineBody.innerHTML = `<em>Merged overlapping points, resolved conflicts, and structured the final answer.</em>`;
-      
-      combine.appendChild(combineDot);
-      combine.appendChild(combineTitle);
-      combine.appendChild(combineBody);
-      panel.appendChild(combine);
-    }
-
-    function startThinkingTimer(index) {
-      stopThinkingTimer(index);
-      const id = setInterval(() => {
-        const toggle = document.getElementById(`think-toggle-${index}`);
-        if (!toggle) return;
-        const panel = document.getElementById(`think-panel-${index}`);
-        const isOpen = panel && !panel.classList.contains('hidden');
-        toggle.textContent = updateThinkingToggleText(index, isOpen);
-      }, 1000);
-      runTimers.set(index, id);
-    }
-
-    function stopThinkingTimer(index) {
-      const id = runTimers.get(index);
-      if (id) {
-        clearInterval(id);
-        runTimers.delete(index);
-      }
-    }
-
-    function toggleThinking(index) {
-      const panel = document.getElementById(`think-panel-${index}`);
-      const toggle = document.getElementById(`think-toggle-${index}`);
-      if (!panel || !toggle) return;
-      const opening = panel.classList.contains('hidden');
-      panel.classList.toggle('hidden');
-      toggle.textContent = updateThinkingToggleText(index, opening);
-      if (opening) {
-        renderInlineThinking(index);
-      }
-    }
-
-    // File handling
-    function fileToDataURL(file) { 
-      return new Promise((resolve, reject) => { 
-        const r = new FileReader(); 
-        r.onload = () => resolve(r.result); 
-        r.onerror = reject; 
-        r.readAsDataURL(file); 
-      }); 
-    }
-
-    async function ocrImage(dataUrl) {
-      try {
-        return await puter.ai.img2txt(dataUrl);
-      } catch (e1) {
-        try {
-          return await puter.ai.img2txt({ image: dataUrl });
-        } catch (e2) {
-          console.error('Image OCR error:', e2);
-          return null;
-        }
-      }
-    }
-
-    attachInput.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0]; 
-      if (!file) return;
-      
-      if (file.type.startsWith('image/')) {
-        try {
-          const dataUrl = await fileToDataURL(file);
-          pendingImage = dataUrl;
-          const chip = document.createElement('div'); 
-          chip.className = 'attachment-chip'; 
-          chip.innerHTML = `Image: ${file.name} <i class="fas fa-times" onclick="this.parentElement.remove(); pendingImage = null;"></i>`; 
-          attachmentsEl.appendChild(chip);
-        } catch (e) {
-          console.error("Error processing image:", e);
-        }
-      } else if (file.type.startsWith('text') || /\.(md|json|txt)$/i.test(file.name)) {
-        try {
-          pendingTextFile = await file.text();
-          const chip = document.createElement('div'); 
-          chip.className = 'attachment-chip'; 
-          chip.innerHTML = `File: ${file.name} <i class="fas fa-times" onclick="this.parentElement.remove(); pendingTextFile = null;"></i>`; 
-          attachmentsEl.appendChild(chip);
-        } catch (e) {
-          console.error("Error reading text file:", e);
-        }
-      } else {
-        alert('Only images or text/md/json files supported');
-      }
-      e.target.value = '';
-    });
-
-    // Code preview
-    function previewCode(code, lang) {
-      const html = !lang || lang === 'html' ? code : `<!doctype html><html><head><style>body{margin:16px;}</style></head><body><pre>${escapeHtml(code)}</pre></body></html>`;
-      const w = window.open('', '_blank');
-      if (!w) return;
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-    }
-
-    // Chat functions
-    function setComposeBusy(busy) {
-      if (busy) {
-        sendBtn.classList.add('stop');
-        sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
-        document.getElementById('attachBtn').style.opacity = '0.5';
-        document.getElementById('attachBtn').style.pointerEvents = 'none';
-      } else {
-        sendBtn.classList.remove('stop');
-        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-        document.getElementById('attachBtn').style.opacity = '';
-        document.getElementById('attachBtn').style.pointerEvents = '';
-      }
-    }
-
-    function abortAll() {
-      if (inFlightAbort) inFlightAbort.abort();
-    }
-
-    sendBtn.onclick = () => {
-      if (sendBtn.classList.contains('stop')) {
-        abortAll();
-      } else {
-        send();
-      }
-    };
-
-    async function summarizeCombined(historyArr, query, answersByProvider, summarizer) {
-      try {
-        const ordered = Object.keys(answersByProvider);
-        const bullets = ordered.map(p => `- ${p}: ${(answersByProvider[p] || '').slice(0, 8000)}`).join('\n');
-        const prompt = `You are an expert editor that merges multiple AI answers into one concise, accurate, and well-structured response.\n\nUser query:\n${query}\n\nModel answers:\n${bullets}`;
-        const msgs = [
-          { role: 'system', content: 'You are a careful, reliable editor and synthesizer. Do not truncate. Include all critical details. Keep code complete.' },
-          ...historyArr.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6),
-          { role: 'user', content: prompt },
-        ];
-        const response = await askModel(msgs, summarizer);
-        const respText = typeof response === 'string' ? response : extractText(response);
-        if (respText && !/^Error:/i.test(respText.trim())) return respText;
-        const fallbacks = Object.values(answersByProvider)
-          .map(v => String(v || ''))
-          .filter(v => v && !/^Error:/i.test(v.trim()));
-        return fallbacks[0] || 'No combined answer could be generated';
-      } catch (e) {
-        console.error("Summarizer error:", e);
-        return `Combined error: ${e.message || "Unknown error occurred during summarization"}`;
-      }
-    }
-
-    async function runParallel(modelIds, historyArr, query, summarizer) {
-      const messages = buildMessages(historyArr, query);
-      const results = {};
-      const tasks = [];
-      
-      const userIndex = history.length - 1;
-      const meta = runMeta.get(userIndex) || {};
-      meta.models = modelIds;
-      runMeta.set(userIndex, meta);
-      
-      const ids = (modelIds && modelIds.length) ? modelIds : [];
-      for (const model of ids) {
-        tasks.push(
-          askModel(messages, model)
-            .then((c) => {
-              results[model] = c;
-            })
-            .catch((e) => {
-              results[model] = `Error: ${e.message || "Unknown error"}`;
-            })
-        );
-      }
-      
-      if (tasks.length) {
-        await Promise.all(tasks);
-      }
-      
-      try {
-        const combined = await summarizeCombined(historyArr, query, results, summarizer);
-        return { ...results, combined };
-      } catch (e) {
-        console.error("Final summarization error:", e);
-        return {
-          ...results,
-          combined: `Failed to generate combined answer: ${e.message || "Unknown error"}`
-        };
-      }
-    }
-
-    async function send() {
-      const q = queryEl.value.trim();
-      if (!q) return;
-      
-      setComposeBusy(true);
-      queryEl.value = '';
-
-      let enriched = q;
-      if (pendingImage) {
-        const text = await ocrImage(pendingImage);
-        if (text) enriched += `\n\n[Image OCR]:\n${text}`;
-      }
-      if (pendingTextFile) {
-        enriched += `\n\n[Attached text]:\n${pendingTextFile.slice(0, 20000)}`;
-      }
-
-      const userIndex = history.length;
-      const msg = { role: 'user', content: enriched };
-      if (pendingImage) msg.images = [pendingImage];
-      if (pendingTextFile) msg.files = [{ name: 'attachment.txt', type: 'text/plain', content: pendingTextFile.slice(0, 20000) }];
-      
-      history.push(msg);
-      runMeta.set(userIndex, { startMs: Date.now(), models: null, results: null, combined: null });
-      renderMessage('user', enriched, userIndex);
-      startThinkingTimer(userIndex);
-      attachmentsEl.innerHTML = '';
-      pendingImage = null;
-      pendingTextFile = null;
-
-      try {
-        inFlightAbort = new AbortController();
-        await ensureSupportedModels();
-        const baseList = supportedModels.size ? Array.from(supportedModels) : [];
-        let modelsToUse = Array.from(selectedModels || new Set(baseList)).filter(m => !supportedModels.size || supportedModels.has(m));
-        if (hasUserModelSelection) {
-          const chosen = Array.from(selectedModels || []);
-          modelsToUse = chosen.filter(m => !supportedModels.size || supportedModels.has(m));
-        }
-        const summarizerModel = (supportedModels.has('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || null));
-        const result = await runParallel(modelsToUse, history, enriched, summarizerModel);
-        
-        let assistantContent = result.combined || '';
-        const nonErrorProvider = Object.entries(result)
-          .filter(([k, v]) => k !== 'combined' && typeof v === 'string')
-          .map(([_, v]) => v)
-          .find(v => !isErrorText(v));
-        if (isBlank(assistantContent) || isErrorText(assistantContent)) {
-          if (nonErrorProvider && !isBlank(nonErrorProvider)) {
-            assistantContent = nonErrorProvider;
-          } else {
-            const fallbackMessages = buildMessages(history, '');
-            const fallback = await askModel(fallbackMessages, null);
-            const fallbackText = extractText(fallback);
-            assistantContent = isBlank(fallbackText) || isErrorText(fallbackText) ? '[No combined answer could be generated]' : fallbackText;
-          }
-        }
-        
-        const aiIndex = history.length;
-        const label = (modelsToUse && modelsToUse.length > 1) ? 'Buddy - Combined' : 'Buddy';
-        const meta = runMeta.get(userIndex) || {};
-        meta.results = Object.fromEntries(Object.entries(result).filter(([k]) => k !== 'combined'));
-        meta.combined = assistantContent;
-        meta.endMs = Date.now();
-        runMeta.set(userIndex, meta);
-        history.push({ role: 'assistant', content: assistantContent, meta: { label } });
-        renderMessage('assistant', assistantContent, aiIndex);
-        stopThinkingTimer(userIndex);
-      } catch (e) {
-        console.error("Send error:", e);
-        const errorMsg = `Error: ${e.message || "Failed to get response"}`;
-        const aiIndex = history.length;
-        history.push({ role: 'assistant', content: errorMsg });
-        renderMessage('assistant', errorMsg, aiIndex);
-      } finally {
-        inFlightAbort = null;
-        setComposeBusy(false);
-      }
-    }
-
-    // Conversation management
-    function saveState() {
-      const state = { 
-        conversations, 
-        activeConversationId, 
-        selectedModels: Array.from(selectedModels || []) 
-      };
-      localStorage.setItem('buddy_state', JSON.stringify(state));
-    }
-
-    function loadState() {
-      try {
-        const raw = localStorage.getItem('buddy_state');
-        if (!raw) throw new Error('no saved state');
-        const st = JSON.parse(raw);
-        conversations = Array.isArray(st.conversations) ? st.conversations : [];
-        activeConversationId = st.activeConversationId || null;
-        const base = supportedModels.size ? Array.from(supportedModels) : CANDIDATE_MODELS;
-        const restored = Array.isArray(st.selectedModels) && st.selectedModels.length ? st.selectedModels : base;
-        selectedModels = new Set(restored.filter(m => !supportedModels.size || supportedModels.has(m)));
-      } catch {
-        conversations = [];
-        activeConversationId = null;
-        const base = supportedModels.size ? Array.from(supportedModels) : CANDIDATE_MODELS;
-        selectedModels = new Set(base);
-      }
-    }
-
-    function ensureDefaultConversation() {
-      if (!conversations.length) {
-        const conv = { 
-          id: String(Date.now()), 
-          name: 'New Chat', 
-          history: [] 
-        };
-        conversations.push(conv);
-        activeConversationId = conv.id;
-      }
-    }
-
-    function setActiveConversation(id) {
-      activeConversationId = id;
-      const conv = conversations.find(c => c.id === id);
-      history = conv.history;
-      chatEl.innerHTML = '';
-      for (let i=0;i<history.length;i++) {
-        renderMessage(history[i].role, history[i].content, i);
-      }
-      currentConversationEl.textContent = conv.name;
-      saveState();
-      renderConversationList();
-    }
-
-    function newChat() {
-      const conv = { 
-        id: String(Date.now()), 
-        name: 'New Chat', 
-        history: [] 
-      };
-      conversations.unshift(conv);
-      saveState();
-      setActiveConversation(conv.id);
-    }
-
-    function renameConversation(id, newName) {
-      const c = conversations.find(x => x.id === id); 
-      if (!c) return;
-      c.name = newName || 'Untitled';
-      if (activeConversationId === id) {
-        currentConversationEl.textContent = c.name;
-      }
-      saveState();
-      renderConversationList();
-    }
-
-    function deleteConversation(id) {
-      const idx = conversations.findIndex(x => x.id === id);
-      if (idx === -1) return;
-      
-      conversations.splice(idx,1);
-      if (!conversations.length) {
-        ensureDefaultConversation();
-      }
-      
-      if (activeConversationId === id) {
-        setActiveConversation(conversations[0].id);
-      } else {
-        saveState();
-        renderConversationList();
-      }
-    }
-
-    async function exportConversationPdf(id) {
-      const c = conversations.find(x => x.id === id); 
-      if (!c) return;
-      
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      let y = 36;
-      const lineHeight = 16;
-      
-      doc.setFont('helvetica',''); 
-      doc.setFontSize(12);
-      doc.text(`Conversation: ${c.name}`, 36, y); 
-      y += 24;
-      
-      for (const m of c.history) {
-        doc.setFont(undefined,'bold'); 
-        doc.text(m.role.toUpperCase()+':', 36, y); 
-        y += lineHeight; 
-        doc.setFont(undefined,'normal');
-        
-        const text = (m.content || '').replace(/\r/g,'');
-        const lines = doc.splitTextToSize(text, pageWidth-72);
-        
-        for (const ln of lines) { 
-          if (y > 780) { 
-            doc.addPage(); 
-            y = 36; 
-          } 
-          doc.text(ln, 36, y); 
-          y += lineHeight; 
-        }
-        
-        if (Array.isArray(m.images)) {
-          for (const img of m.images) { 
-            if (y > 700) { 
-              doc.addPage(); 
-              y = 36; 
-            } 
-            try { 
-              doc.addImage(img, 'PNG', 36, y, pageWidth-72, (pageWidth-72)*0.56); 
-              y += 12 + (pageWidth-72)*0.56; 
-            } catch (e) {
-              console.error("Error adding image:", e);
-            } 
-          }
-        }
-        
-        if (Array.isArray(m.files)) {
-          for (const f of m.files) {
-            const label = f.type && f.type.startsWith('text') ? `File (${f.name}):` : `Attachment: ${f.name}`;
-            if (y > 780) { 
-              doc.addPage(); 
-              y = 36; 
-            }
-            doc.setFont(undefined,'bold'); 
-            doc.text(label, 36, y); 
-            y += lineHeight; 
-            doc.setFont(undefined,'normal');
+                jsContent = `// Portfolio JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('nav a').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetSection = document.querySelector(targetId);
             
-            if (f.content && typeof f.content === 'string') {
-              const flines = doc.splitTextToSize(f.content.slice(0,5000), pageWidth-72);
-              for (const ln of flines) { 
-                if (y > 780) { 
-                  doc.addPage(); 
-                  y = 36; 
-                } 
-                doc.text(ln, 36, y); 
-                y += lineHeight; 
-              }
-            }
-          }
-        }
-        y += 8;
-      }
-      doc.save(`${c.name.replace(/[^a-z0-9\-_]+/gi,'_')}.pdf`);
-    }
-
-    function renderConversationList() {
-      convList.innerHTML = '';
-      for (const c of conversations) {
-        const item = document.createElement('div');
-        item.className = `conversation-item ${activeConversationId === c.id ? 'active' : ''}`;
-        item.innerHTML = `
-          <div class="conversation-icon">
-            <i class="fas fa-comment"></i>
-          </div>
-          <div class="conversation-name">${escapeHtml(c.name)}</div>
-          <div class="conversation-actions">
-            <button class="action-btn" title="Export PDF" onclick="event.stopPropagation(); exportConversationPdf('${c.id}')">
-              <i class="fas fa-download"></i>
-            </button>
-            <button class="action-btn" title="Delete" onclick="event.stopPropagation(); deleteConversation('${c.id}')">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        `;
-        item.addEventListener('click', () => setActiveConversation(c.id));
-        convList.appendChild(item);
-      }
-    }
-
-    // Model management
-    function loadSupportedModels() {
-      try {
-        const raw = localStorage.getItem('buddy_supported_models');
-        if (!raw) return;
-        const obj = JSON.parse(raw);
-        if (!obj || !Array.isArray(obj.models)) return;
-        supportedModels = new Set(obj.models);
-      } catch {}
-    }
-
-    function saveSupportedModels() {
-      try {
-        localStorage.setItem('buddy_supported_models', JSON.stringify({ models: Array.from(supportedModels) }));
-      } catch {}
-    }
-
-    async function probeModel(modelId) {
-      try {
-        const msgs = [ { role: 'user', content: 'ok?' } ];
-        const text = await askModel(msgs, modelId);
-        return Boolean(text && !/^Error:/i.test(String(text)));
-      } catch {
-        return false;
-      }
-    }
-
-    async function ensureSupportedModels() {
-      if (supportedModels.size > 0) return;
-      const probes = await Promise.all(
-        CANDIDATE_MODELS.map(async (m) => ({ m, ok: await probeModel(m) }))
-      );
-      supportedModels = new Set(probes.filter(x => x.ok).map(x => x.m));
-      if (supportedModels.size === 0) {
-        supportedModels = new Set([]);
-      }
-      saveSupportedModels();
-    }
-
-    function renderModelList() {
-      modelList.innerHTML = '';
-      const list = supportedModels.size ? Array.from(supportedModels) : CANDIDATE_MODELS;
-      for (const mid of list) {
-        const row = document.createElement('div');
-        row.className = 'model-row';
-        row.innerHTML = `
-          <input type="checkbox" ${(selectedModels||new Set(list)).has(mid) ? 'checked' : ''}>
-          <span>${mid}</span>
-        `;
-        const checkbox = row.querySelector('input');
-        checkbox.addEventListener('change', () => {
-          if (!selectedModels) selectedModels = new Set(list);
-          if (checkbox.checked) selectedModels.add(mid);
-          else selectedModels.delete(mid);
-          hasUserModelSelection = true;
-          saveState();
+            window.scrollTo({
+                top: targetSection.offsetTop - 80,
+                behavior: 'smooth'
+            });
         });
-        modelList.appendChild(row);
-      }
+    });
+    
+    // Form submission handling
+    const contactForm = document.querySelector('form');
+    if (contactForm) {
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Thank you for your message! This is a demo form.');
+            contactForm.reset();
+        });
     }
-
-    // Edit/delete messages
-    let activeEditIndex = null;
-    function editPrompt(index) {
-      if (activeEditIndex !== null) return;
-      const original = history[index]; 
-      if (!original || original.role !== 'user') return;
-      
-      activeEditIndex = index;
-      const bubbles = [...chatEl.children];
-      const bubble = bubbles[index];
-      if (!bubble) return;
-      
-      const body = bubble.querySelector('.message-body');
-      const originalText = original.content;
-      body.innerHTML = '';
-      
-      const ta = document.createElement('textarea');
-      ta.style.width = '100%';
-      ta.style.minHeight = '120px';
-      ta.style.padding = '12px';
-      ta.style.background = 'var(--bg-tertiary)';
-      ta.style.border = '1px solid var(--border)';
-      ta.style.borderRadius = 'var(--radius)';
-      ta.style.color = 'var(--text-primary)';
-      ta.value = originalText;
-      
-      const bar = document.createElement('div'); 
-      bar.className = 'toolbar';
-      bar.style.marginTop = '8px';
-      
-      const saveBtn = document.createElement('button'); 
-      saveBtn.className = 'btn'; 
-      saveBtn.textContent = 'Save';
-      saveBtn.style.padding = '6px 12px';
-      
-      const cancelBtn = document.createElement('button'); 
-      cancelBtn.className = 'btn'; 
-      cancelBtn.textContent = 'Cancel';
-      cancelBtn.style.padding = '6px 12px';
-      cancelBtn.style.marginLeft = '8px';
-      
-      bar.appendChild(saveBtn); 
-      bar.appendChild(cancelBtn);
-      body.appendChild(ta); 
-      body.appendChild(bar);
-      
-      saveBtn.onclick = () => saveEdit(index, ta.value);
-      cancelBtn.onclick = () => cancelEdit(index, originalText);
-    }
-
-    function cancelEdit(index, originalText) {
-      activeEditIndex = null;
-      const bubbles = [...chatEl.children];
-      const bubble = bubbles[index]; 
-      if (!bubble) return;
-      
-      const body = bubble.querySelector('.message-body');
-      body.innerHTML = `<p>${formatMessageContent(originalText)}</p>`;
-    }
-
-    function saveEdit(index, newText) {
-      activeEditIndex = null;
-      history[index].content = newText;
-      while (history.length > index + 1) history.pop();
-      
-      chatEl.innerHTML = '';
-      for (let i=0;i<=index;i++) {
-        renderMessage(history[i].role, history[i].content, i);
-      }
-      
-      (async () => {
-        setComposeBusy(true);
-      try {
-          await ensureSupportedModels();
-          const baseList = supportedModels.size ? Array.from(supportedModels) : [];
-          let modelsToUse = Array.from(selectedModels || new Set(baseList)).filter(m => !supportedModels.size || supportedModels.has(m));
-          if (hasUserModelSelection) {
-            const chosen = Array.from(selectedModels || []);
-            modelsToUse = chosen.filter(m => !supportedModels.size || supportedModels.has(m));
-          }
-          const summarizerModel = (supportedModels.has('gpt-4o') ? 'gpt-4o' : (modelsToUse[0] || null));
-          const result = await runParallel(modelsToUse, history, newText, summarizerModel);
-          let assistantContent = result.combined || '';
-          const nonErrorProvider = Object.entries(result)
-            .filter(([k, v]) => k !== 'combined' && typeof v === 'string')
-            .map(([_, v]) => v)
-            .find(v => !isErrorText(v));
-          if (isBlank(assistantContent) || isErrorText(assistantContent)) {
-            if (nonErrorProvider && !isBlank(nonErrorProvider)) {
-              assistantContent = nonErrorProvider;
-            } else {
-              const fallbackMessages = buildMessages(history, '');
-              const fallback = await askModel(fallbackMessages, null);
-              const fallbackText = extractText(fallback);
-              assistantContent = isBlank(fallbackText) || isErrorText(fallbackText) ? '[No combined answer could be generated]' : fallbackText;
+    
+    // Animate elements on scroll
+    const animateOnScroll = function() {
+        const elements = document.querySelectorAll('.project-card, section h2, form');
+        
+        elements.forEach(element => {
+            const elementPosition = element.getBoundingClientRect().top;
+            const screenPosition = window.innerHeight / 1.3;
+            
+            if (elementPosition < screenPosition) {
+                element.style.opacity = 1;
+                element.style.transform = 'translateY(0)';
             }
-          }
-          const aiIndex = history.length;
-          const label = (modelsToUse && modelsToUse.length > 1) ? 'Buddy - Combined' : 'Buddy';
-          const meta = runMeta.get(index) || {};
-          meta.endMs = Date.now();
-          runMeta.set(index, meta);
-          history.push({ role: 'assistant', content: assistantContent, meta: { label } });
-          renderMessage('assistant', assistantContent, aiIndex);
-          stopThinkingTimer(index);
-        } catch (e) {
-          console.error("Error after edit:", e);
-        } finally { 
-          setComposeBusy(false);
+        });
+    };
+    
+    // Set initial state for animation
+    document.querySelectorAll('.project-card, section h2, form').forEach(element => {
+        element.style.opacity = 0;
+        element.style.transform = 'translateY(20px)';
+        element.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    });
+    
+    // Listen for scroll events
+    window.addEventListener('scroll', animateOnScroll);
+    // Trigger once on load
+    animateOnScroll();
+    
+    console.log('Portfolio website loaded successfully!');
+});`;
+            } else {
+                // Default template for other requests
+                htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${state.projectName}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Welcome to ${state.projectName}</h1>
+        <p>Created with Buddy AI</p>
+    </header>
+    
+    <main>
+        <section class="hero">
+            <h2>Modern, Responsive Design</h2>
+            <p>This website was generated based on your request: "${prompt}"</p>
+            <button class="cta-button">Get Started</button>
+        </section>
+        
+        <section class="features">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature">
+                    <h3>Feature 1</h3>
+                    <p>Description of feature 1</p>
+                </div>
+                <div class="feature">
+                    <h3>Feature 2</h3>
+                    <p>Description of feature 2</p>
+                </div>
+                <div class="feature">
+                    <h3>Feature 3</h3>
+                    <p>Description of feature 3</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; ${new Date().getFullYear()} ${state.projectName}</p>
+    </footer>
+    
+    <script src="script.js"><\/script>
+</body>
+</html>`;
+
+                cssContent = `/* Modern CSS for ${state.projectName} */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+}
+
+header {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 2.5rem;
+    color: #3b82f6;
+    margin-bottom: 0.5rem;
+}
+
+header p {
+    color: #64748b;
+}
+
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.hero {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 3rem;
+}
+
+.hero h2 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    color: #1e293b;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    color: #64748b;
+}
+
+.cta-button {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.cta-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+}
+
+.features {
+    background: white;
+    padding: 3rem 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.features h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #1e293b;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.feature {
+    background: #f8fafc;
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.feature:hover {
+    transform: translateY(-5px);
+}
+
+.feature h3 {
+    color: #3b82f6;
+    margin-bottom: 1rem;
+}
+
+footer {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 3rem;
+    color: #64748b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .hero {
+        padding: 2rem 1rem;
+    }
+    
+    .hero h2 {
+        font-size: 1.8rem;
+    }
+    
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+}`;
+
+                jsContent = `// JavaScript for ${state.projectName}
+document.addEventListener('DOMContentLoaded', function() {
+    // Add interactive functionality
+    const ctaButton = document.querySelector('.cta-button');
+    
+    if (ctaButton) {
+        ctaButton.addEventListener('click', function() {
+            alert('Welcome to ${state.projectName}! This website was generated by Buddy AI.');
+        });
+    }
+    
+    // Animate features on scroll
+    const animateFeatures = function() {
+        const features = document.querySelectorAll('.feature');
+        
+        features.forEach(feature => {
+            const featurePosition = feature.getBoundingClientRect().top;
+            const screenPosition = window.innerHeight / 1.3;
+            
+            if (featurePosition < screenPosition) {
+                feature.style.opacity = 1;
+                feature.style.transform = 'translateY(0)';
+            }
+        });
+    };
+    
+    // Set initial state for animation
+    document.querySelectorAll('.feature').forEach(feature => {
+        feature.style.opacity = 0;
+        feature.style.transform = 'translateY(20px)';
+        feature.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    });
+    
+    // Listen for scroll events
+    window.addEventListener('scroll', animateFeatures);
+    // Trigger once on load
+    animateFeatures();
+    
+    console.log('${state.projectName} loaded successfully!');
+});`;
+            }
+            
+            // Clear existing files
+            state.files = {
+                '/': {
+                    type: 'folder',
+                    name: state.projectName.toLowerCase().replace(/\s+/g, '-'),
+                    path: '/',
+                    children: []
+                }
+            };
+            
+            // Create files from demo content
+            const files = [
+                { name: 'index.html', type: 'file', content: htmlContent },
+                { name: 'style.css', type: 'file', content: cssContent },
+                { name: 'script.js', type: 'file', content: jsContent }
+            ];
+            
+            // Add files to state
+            files.forEach((file, index) => {
+                const path = `/${file.name}`;
+                state.files[path] = {
+                    type: file.type,
+                    name: file.name,
+                    path: path,
+                    content: file.content
+                };
+                state.files['/'].children.push(path);
+                
+                // If this is the first file, open it
+                if (index === 0) {
+                    state.currentFile = file.name;
+                }
+            });
+            
+            // Update UI
+            renderFileTree();
+            updateCodeEditor();
+            updatePreview();
+            
+            // Save state
+            saveState();
         }
-      })();
+
+        // Process AI response and create files
+        function processAIResponse(response) {
+            // Clear existing files
+            state.files = {
+                '/': {
+                    type: 'folder',
+                    name: state.projectName.toLowerCase().replace(/\s+/g, '-'),
+                    path: '/',
+                    children: []
+                }
+            };
+            
+            // Extract HTML, CSS, and JS from response
+            const htmlMatch = response.match(/```html\n([\s\S]*?)\n```/) || response.match(/<!DOCTYPE html>[\s\S]*?<\/html>/i);
+            const cssMatch = response.match(/```css\n([\s\S]*?)\n```/) || response.match(/<style>([\s\S]*?)<\/style>/i);
+            const jsMatch = response.match(/```javascript\n([\s\S]*?)\n```/) || response.match(/<script>([\s\S]*?)<\/script>/i);
+            
+            // Generate basic project structure based on AI response
+            const files = [
+                { 
+                    name: 'index.html', 
+                    type: 'file', 
+                    content: htmlMatch ? htmlMatch[1] || htmlMatch[0] : generateHtmlTemplate() 
+                },
+                { 
+                    name: 'style.css', 
+                    type: 'file', 
+                    content: cssMatch ? cssMatch[1] || cssMatch[0] : generateCssTemplate() 
+                },
+                { 
+                    name: 'script.js', 
+                    type: 'file', 
+                    content: jsMatch ? jsMatch[1] || jsMatch[0] : generateJsTemplate() 
+                }
+            ];
+            
+            // Add files to state
+            files.forEach((file, index) => {
+                const path = `/${file.name}`;
+                state.files[path] = {
+                    type: file.type,
+                    name: file.name,
+                    path: path,
+                    content: file.content
+                };
+                state.files['/'].children.push(path);
+                
+                // Update UI
+                renderFileTree();
+                
+                // If this is the first file, open it
+                if (index === 0) {
+                    state.currentFile = file.name;
+                    updateCodeEditor();
+                }
+            });
+            
+            // Save state
+            saveState();
+        }
+
+        // Add thinking animation to chat
+        function addThinkingAnimation() {
+            const id = Date.now();
+            const thinkingHtml = `
+                <div id="thinking-${id}" class="rounded-lg p-3 bg-slate-800 border-l-4 border-emerald-500">
+                    <div class="font-medium text-emerald-400">Buddy AI</div>
+                    <div class="mt-1 thinking-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.innerHTML += thinkingHtml;
+            mobileChatMessages.innerHTML += thinkingHtml;
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
+            
+            return id;
+        }
+
+        // Remove thinking animation
+        function removeThinkingAnimation(id) {
+            const thinkingElem = document.getElementById(`thinking-${id}`);
+            const mobileThinkingElem = document.getElementById(`thinking-${id}`);
+            
+            if (thinkingElem) thinkingElem.remove();
+            if (mobileThinkingElem) mobileThinkingElem.remove();
+        }
+
+        // Add chat message
+        function addChatMessage(role, content) {
+            const message = {
+                role,
+                content,
+                timestamp: new Date()
+            };
+            
+            state.chatHistory.push(message);
+            
+            // Update UI
+            renderChatMessage(message);
+            
+            // Save state
+            saveState();
+        }
+
+        // Render chat message
+        function renderChatMessage(message) {
+            const messageHtml = `
+                <div class="rounded-lg p-3 ${message.role === 'user' ? 'bg-slate-800 border-l-4 border-blue-500' : 'bg-slate-800 border-l-4 border-emerald-500'}">
+                    <div class="font-medium ${message.role === 'user' ? 'text-blue-400' : 'text-emerald-400'}">${message.role === 'user' ? 'You' : 'Buddy AI'}</div>
+                    <div class="mt-1">${formatMessageContent(message.content)}</div>
+                </div>
+            `;
+            
+            chatMessages.innerHTML += messageHtml;
+            mobileChatMessages.innerHTML += messageHtml;
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            mobileChatMessages.scrollTop = mobileChatMessages.scrollHeight;
+        }
+
+        // Format message content with code highlighting
+        function formatMessageContent(content) {
+            // Simple code formatting - in a real app you'd use a proper highlighting library
+            return content
+                .replace(/```([\s\S]*?)```/g, '<pre class="bg-slate-900 p-2 rounded my-2 overflow-x-auto"><code>$1</code></pre>')
+                .replace(/`([^`]+)`/g, '<code class="bg-slate-700 px-1 rounded">$1</code>');
+        }
+
+        // Handle send chat
+        function handleSendChat() {
+            const message = chatInput.value.trim() || mobileChatInput.value.trim();
+            if (!message) return;
+            
+            // Add user message to chat
+            addChatMessage('user', message);
+            
+            // Clear input
+            chatInput.value = '';
+            mobileChatInput.value = '';
+            
+            // Use Puter AI to generate response
+            generateWithPuter(message);
+        }
+
+        // Render file tree
+        function renderFileTree() {
+            const root = state.files['/'];
+            if (!root) return;
+            
+            let html = `
+                <div class="file-item folder" data-path="/">
+                    <span class="file-icon"><i class="fas fa-folder text-yellow-400"></i></span>
+                    <span class="file-name">${root.name}</span>
+                    <span class="file-actions ml-auto flex space-x-1 opacity-0 transition-opacity">
+                        <button class="add-file-btn p-1 text-xs rounded hover:bg-slate-700" title="Add File">
+                            <i class="fas fa-plus text-blue-400"></i>
+                        </button>
+                    </span>
+                </div>
+                <div class="file-tree ml-4">
+            `;
+            
+            root.children.forEach(childPath => {
+                const file = state.files[childPath];
+                if (file) {
+                    const icon = getFileIcon(file.name);
+                    const isActive = state.currentFile === file.name;
+                    
+                    html += `
+                        <div class="file-item ${isActive ? 'bg-slate-800' : ''}" data-path="${file.path}">
+                            <span class="file-icon">${icon}</span>
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-actions ml-auto flex space-x-1 opacity-0 transition-opacity">
+                                <button class="delete-file-btn p-1 text-xs rounded hover:bg-slate-700" title="Delete">
+                                    <i class="fas fa-trash text-red-400"></i>
+                                </button>
+                            </span>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div>';
+            
+            fileTree.innerHTML = html;
+            mobileFileTree.innerHTML = html;
+            
+            // Add event listeners to file items
+            document.querySelectorAll('.file-item').forEach(item => {
+                const path = item.dataset.path;
+                const file = state.files[path];
+                
+                if (file && file.type === 'file') {
+                    item.addEventListener('click', () => {
+                        state.currentFile = file.name;
+                        updateCodeEditor();
+                        
+                        // Update active file highlighting
+                        document.querySelectorAll('.file-item').forEach(i => i.classList.remove('bg-slate-800'));
+                        item.classList.add('bg-slate-800');
+                    });
+                }
+                
+                // Add event listeners for file actions
+                const deleteBtn = item.querySelector('.delete-file-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        confirmDeleteFile(path);
+                    });
+                }
+                
+                const addBtn = item.querySelector('.add-file-btn');
+                if (addBtn) {
+                    addBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showFileModal('file');
+                    });
+                }
+            });
+            
+            // Show file actions on hover
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.addEventListener('mouseenter', () => {
+                    const actions = item.querySelector('.file-actions');
+                    if (actions) actions.classList.remove('opacity-0');
+                });
+                
+                item.addEventListener('mouseleave', () => {
+                    const actions = item.querySelector('.file-actions');
+                    if (actions) actions.classList.add('opacity-0');
+                });
+            });
+        }
+
+        // Get file icon based on file extension
+        function getFileIcon(filename) {
+            const extension = filename.split('.').pop().toLowerCase();
+            switch (extension) {
+                case 'html':
+                    return '<i class="fab fa-html5 text-orange-500"></i>';
+                case 'css':
+                    return '<i class="fab fa-css3-alt text-blue-500"></i>';
+                case 'js':
+                    return '<i class="fab fa-js-square text-yellow-400"></i>';
+                case 'json':
+                    return '<i class="fas fa-file-code text-yellow-300"></i>';
+                case 'md':
+                    return '<i class="fas fa-book text-blue-300"></i>';
+                default:
+                    return '<i class="fas fa-file text-gray-400"></i>';
+            }
+        }
+
+        // Update code editor
+        function updateCodeEditor() {
+            const file = state.files[`/${state.currentFile}`];
+            if (!file) return;
+            
+            currentFile.textContent = file.name;
+            codeEditor.textContent = file.content;
+            
+            // Update editor header filename
+            const editorHeader = codeEditor.parentElement.querySelector('.editor-header .text-xs');
+            if (editorHeader) {
+                editorHeader.textContent = file.name;
+            }
+            
+            // Apply basic syntax highlighting
+            applySyntaxHighlighting();
+        }
+
+        // Apply basic syntax highlighting
+        function applySyntaxHighlighting() {
+            const fileExtension = state.currentFile.split('.').pop().toLowerCase();
+            let content = codeEditor.textContent;
+            
+            // Very basic highlighting for demo purposes
+            // In a real app, you'd use a library like Prism.js or Highlight.js
+            if (fileExtension === 'html') {
+                content = content
+                    .replace(/&lt;!DOCTYPE([^&]*)&gt;/g, '<span class="token doctype">&lt;!DOCTYPE$1&gt;</span>')
+                    .replace(/&lt;(\/?)([a-zA-Z0-9-]+)([^&]*)&gt;/g, '&lt;$1<span class="token tag">$2</span>$3&gt;')
+                    .replace(/([a-zA-Z-]+)=/g, '<span class="token attribute">$1</span>=')
+                    .replace(/&quot;([^&]*)&quot;/g, '<span class="token string">&quot;$1&quot;</span>');
+            } else if (fileExtension === 'css') {
+                content = content
+                    .replace(/([\.#]?[a-zA-Z0-9-]+\s*){/g, '<span class="token selector">$1</span>{')
+                    .replace(/([a-zA-Z-]+):/g, '<span class="token property">$1</span>:')
+                    .replace(/:(.*?);/g, ':<span class="token value">$1</span>;');
+            } else if (fileExtension === 'js') {
+                content = content
+                    .replace(/\b(function|var|let|const|if|else|for|while|return|class|import|export|from)\b/g, '<span class="token keyword">$1</span>')
+                    .replace(/(".*?"|'.*?')/g, '<span class="token string">$1</span>')
+                    .replace(/(\/\/.*)/g, '<span class="token comment">$1</span>');
+            }
+            
+            codeEditor.innerHTML = content;
+        }
+
+        // Update preview
+        function updatePreview() {
+            const htmlFile = state.files['/index.html'];
+            const cssFile = state.files['/style.css'];
+            const jsFile = state.files['/script.js'];
+            
+            if (!htmlFile) return;
+            
+            let htmlContent = htmlFile.content;
+            
+            // Inject CSS if available
+            if (cssFile) {
+                const styleTag = `<style>${cssFile.content}</style>`;
+                if (htmlContent.includes('</head>')) {
+                    htmlContent = htmlContent.replace('</head>', `${styleTag}</head>`);
+                } else if (htmlContent.includes('<head>')) {
+                    htmlContent = htmlContent.replace('<head>', `<head>${styleTag}`);
+                } else {
+                    htmlContent = `<head>${styleTag}</head>${htmlContent}`;
+                }
+            }
+            
+            // Inject JS if available
+            if (jsFile) {
+                const scriptTag = `<script>${jsFile.content.replace(/<\/script>/g, '<\\/script>')}<\/script>`;
+                if (htmlContent.includes('</body>')) {
+                    htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`);
+                } else if (htmlContent.includes('<body>')) {
+                    htmlContent = htmlContent.replace('<body>', `<body>${scriptTag}`);
+                } else {
+                    htmlContent += scriptTag;
+                }
+            }
+            
+            // Update preview
+            websitePreview.srcdoc = htmlContent;
+        }
+
+        // Set preview device
+        function setPreviewDevice(device) {
+            const previewWrapper = document.getElementById('preview-wrapper');
+            switch (device) {
+                case 'mobile':
+                    previewWrapper.className = 'w-full h-full flex justify-center p-4';
+                    websitePreview.className = 'w-full h-full border border-slate-200 rounded-lg';
+                    websitePreview.style.maxWidth = '375px';
+                    websitePreview.style.maxHeight = '667px';
+                    break;
+                case 'tablet':
+                    previewWrapper.className = 'w-full h-full flex justify-center p-4';
+                    websitePreview.className = 'w-full h-full border border-slate-200 rounded-lg';
+                    websitePreview.style.maxWidth = '768px';
+                    websitePreview.style.maxHeight = '1024px';
+                    break;
+                case 'desktop':
+                    previewWrapper.className = 'w-full h-full flex justify-center p-4';
+                    websitePreview.className = 'w-full h-full border border-slate-200 rounded-lg';
+                    websitePreview.style.maxWidth = '100%';
+                    websitePreview.style.maxHeight = '100%';
+                    break;
+            }
+        }
+
+        // Show file modal
+        function showFileModal(type) {
+            fileModal.classList.remove('hidden');
+            if (type === 'file') {
+                fileModalTitle.textContent = 'Create New File';
+                fileTypeContainer.classList.remove('hidden');
+            } else {
+                fileModalTitle.textContent = 'Create New Folder';
+                fileTypeContainer.classList.add('hidden');
+            }
+        }
+
+        // Handle file modal confirm
+        function handleFileModalConfirm() {
+            const name = fileNameInput.value.trim();
+            if (!name) {
+                showNotification('Please enter a name', 'error');
+                return;
+            }
+            
+            const isFile = !fileTypeContainer.classList.contains('hidden');
+            const type = isFile ? 'file' : 'folder';
+            const extension = isFile ? fileTypeSelect.value : '';
+            const fullName = isFile && !name.endsWith(`.${extension}`) ? `${name}.${extension}` : name;
+            const path = `/${fullName}`;
+            
+            // Check if file/folder already exists
+            if (state.files[path]) {
+                showNotification('A file or folder with this name already exists', 'error');
+                return;
+            }
+            
+            // Add to state
+            state.files[path] = {
+                type,
+                name: fullName,
+                path,
+                content: type === 'file' ? getFileTemplate(extension) : ''
+            };
+            
+            state.files['/'].children.push(path);
+            
+            // Update UI
+            renderFileTree();
+            
+            // Close modal
+            fileModal.classList.add('hidden');
+            fileNameInput.value = '';
+            
+            // Save state
+            saveState();
+            
+            showNotification(`${type === 'file' ? 'File' : 'Folder'} created successfully`);
+        }
+
+        // Confirm file deletion
+        function confirmDeleteFile(path) {
+            const file = state.files[path];
+            if (!file) return;
+            
+            // Don't allow deletion of root folder
+            if (path === '/') return;
+            
+            modalTitle.textContent = 'Delete File';
+            modalMessage.textContent = `Are you sure you want to delete "${file.name}"? This action cannot be undone.`;
+            confirmationModal.classList.remove('hidden');
+            
+            modalConfirm.onclick = () => {
+                // Remove file from state
+                delete state.files[path];
+                
+                // Remove from parent's children array
+                const parentPath = '/';
+                if (state.files[parentPath]) {
+                    state.files[parentPath].children = state.files[parentPath].children.filter(child => child !== path);
+                }
+                
+                // If deleted file was the current file, switch to index.html
+                if (state.currentFile === file.name) {
+                    state.currentFile = 'index.html';
+                    updateCodeEditor();
+                }
+                
+                // Update UI
+                renderFileTree();
+                
+                // Close modal
+                confirmationModal.classList.add('hidden');
+                
+                // Save state
+                saveState();
+                
+                showNotification('File deleted successfully');
+            };
+        }
+
+        // Get file template based on extension
+        function getFileTemplate(extension) {
+            switch (extension) {
+                case 'html':
+                    return generateHtmlTemplate();
+                case 'css':
+                    return generateCssTemplate();
+                case 'js':
+                    return generateJsTemplate();
+                default:
+                    return '';
+            }
+        }
+
+        // Generate HTML template
+        function generateHtmlTemplate() {
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${state.projectName}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Welcome to ${state.projectName}</h1>
+    </header>
+    <main>
+        <section class="hero">
+            <h2>Modern, Colorful UI</h2>
+            <p>This project was generated by Buddy AI</p>
+            <button class="cta-button">Get Started</button>
+        </section>
+    </main>
+    <script src="script.js"><\/script>
+</body>
+</html>`;
+        }
+
+        // Generate CSS template
+        function generateCssTemplate() {
+            return `/* Modern, colorful styles for ${state.projectName} */
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    min-height: 100vh;
+}
+
+header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 1rem;
+    text-align: center;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    text-align: center;
+    color: white;
+}
+
+.cta-button {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}`;
+        }
+
+        // Generate JavaScript template
+        function generateJsTemplate() {
+            return `// JavaScript for ${state.projectName}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctaButton = document.querySelector('.cta-button');
+    
+    if (ctaButton) {
+        ctaButton.addEventListener('click', function() {
+            alert('Welcome to your new project! This alert was triggered by JavaScript.');
+        });
     }
+    
+    console.log('${state.projectName} loaded successfully!');
+});`;
+        }
 
-    function deletePrompt(index) {
-      if (!history[index] || history[index].role !== 'user') return;
-      history.splice(index);
-      chatEl.innerHTML = '';
-      for (let i=0;i<history.length;i++) {
-        renderMessage(history[i].role, history[i].content, i);
-      }
-    }
+        // Copy code to clipboard
+        function copyCodeToClipboard() {
+            const file = state.files[`/${state.currentFile}`];
+            if (!file) return;
+            
+            navigator.clipboard.writeText(file.content)
+                .then(() => {
+                    // Show success message
+                    showNotification('Code copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to copy code: ', err);
+                    showNotification('Failed to copy code to clipboard', 'error');
+                });
+        }
 
-    // Initialize the app
-    (async () => {
-      loadSupportedModels();
-      await ensureSupportedModels();
-      loadState();
-      ensureDefaultConversation();
-      history = (conversations.find(c => c.id === activeConversationId) || conversations[0]).history;
-      activeConversationId = (conversations.find(c => c.id === activeConversationId) || conversations[0]).id;
-      renderConversationList();
-      renderModelList();
-      setActiveConversation(activeConversationId);
-      
-      // Add welcome message if new conversation
-      if (history.length === 0) {
-        const welcomeMsg = `
-          <p>Hello! I'm Buddy, your AI assistant. How can I help you today?</p>
-          <p>Here are some things I can do:</p>
-          <ul>
-            <li>Answer your questions</li>
-            <li>Help with coding problems</li>
-            <li>Generate content</li>
-            <li>Analyze images and documents</li>
-          </ul>
-          <p>You can select different AI models from the sidebar to compare their responses.</p>
-        `;
-        const aiIndex = history.length;
-        history.push({ role: 'assistant', content: welcomeMsg, meta: { label: 'Buddy AI' } });
-        renderMessage('assistant', welcomeMsg, aiIndex);
-      }
-    })();
+        // Undo code edit
+        function undoCodeEdit() {
+            if (state.undoStack.length > 0) {
+                const previousState = state.undoStack.pop();
+                state.redoStack.push(state.files[`/${state.currentFile}`].content);
+                state.files[`/${state.currentFile}`].content = previousState;
+                updateCodeEditor();
+                updatePreview();
+                saveState();
+            }
+        }
 
-    // Event listeners
-    toggleSidebarBtn.addEventListener('click', () => sidebar.classList.toggle('active'));
-    closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
-    btnNewChat.addEventListener('click', newChat);
+        // Redo code edit
+        function redoCodeEdit() {
+            if (state.redoStack.length > 0) {
+                const nextState = state.redoStack.pop();
+                state.undoStack.push(state.files[`/${state.currentFile}`].content);
+                state.files[`/${state.currentFile}`].content = nextState;
+                updateCodeEditor();
+                updatePreview();
+                saveState();
+            }
+        }
 
-    queryEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        send();
-      }
-    });
+        // Create new project
+        function createNewProject() {
+            // Reset state
+            state.projectName = 'New Project';
+            state.currentFile = 'index.html';
+            state.files = {
+                '/': {
+                    type: 'folder',
+                    name: 'new-project',
+                    path: '/',
+                    children: ['/index.html', '/style.css', '/script.js']
+                },
+                '/index.html': {
+                    type: 'file',
+                    name: 'index.html',
+                    path: '/index.html',
+                    content: generateHtmlTemplate()
+                },
+                '/style.css': {
+                    type: 'file',
+                    name: 'style.css',
+                    path: '/style.css',
+                    content: generateCssTemplate()
+                },
+                '/script.js': {
+                    type: 'file',
+                    name: 'script.js',
+                    path: '/script.js',
+                    content: generateJsTemplate()
+                }
+            };
+            state.chatHistory = [];
+            state.undoStack = [];
+            state.redoStack = [];
+            
+            // Update UI
+            projectNameInput.value = state.projectName;
+            currentProjectNameMenu.textContent = state.projectName;
+            chatMessages.innerHTML = '';
+            mobileChatMessages.innerHTML = '';
+            renderFileTree();
+            updateCodeEditor();
+            updatePreview();
+            
+            // Save state
+            saveState();
+            
+            // Show notification
+            showNotification('New project created');
+        }
 
-    // Auto-resize textarea
-    queryEl.addEventListener('input', () => {
-      queryEl.style.height = 'auto';
-      queryEl.style.height = `${queryEl.scrollHeight}px`;
-    });
-  </script>
+        // Confirm delete project
+        function confirmDeleteProject() {
+            modalTitle.textContent = 'Delete Project';
+            modalMessage.textContent = 'Are you sure you want to delete this project? This action cannot be undone.';
+            confirmationModal.classList.remove('hidden');
+            
+            modalConfirm.onclick = () => {
+                confirmationModal.classList.add('hidden');
+                createNewProject();
+            };
+        }
+
+        // Save project to storage
+        function saveProjectToStorage() {
+            try {
+                localStorage.setItem('buddyAIProject', JSON.stringify(state));
+                showNotification('Project saved successfully');
+            } catch (e) {
+                console.error('Error saving project:', e);
+                showNotification('Error saving project. Local storage may be full.', 'error');
+            }
+        }
+
+        // Download project as ZIP
+        function downloadProjectAsZip() {
+            try {
+                const zip = new JSZip();
+                const root = state.files['/'];
+                
+                // Add all files to ZIP
+                root.children.forEach(childPath => {
+                    const file = state.files[childPath];
+                    if (file && file.type === 'file') {
+                        zip.file(file.name, file.content);
+                    }
+                });
+                
+                // Generate and download ZIP
+                zip.generateAsync({ type: 'blob' })
+                    .then(content => {
+                        saveAs(content, `${state.projectName.toLowerCase().replace(/\s+/g, '-')}.zip`);
+                        showNotification('Project downloaded successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error generating ZIP:', error);
+                        showNotification('Error generating project download', 'error');
+                    });
+            } catch (error) {
+                console.error('Error downloading project:', error);
+                showNotification('Error downloading project', 'error');
+            }
+        }
+
+        // Export chat to PDF
+        function exportChatToPdf() {
+            try {
+                const element = document.createElement('div');
+                element.innerHTML = `
+                    <h1>Chat Export - ${state.projectName}</h1>
+                    <p>Generated on ${new Date().toLocaleDateString()}</p>
+                    ${state.chatHistory.map(msg => `
+                        <div style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                            <strong>${msg.role === 'user' ? 'You' : 'Buddy AI'}</strong> 
+                            <span style="color: #666; font-size: 0.9em;">(${new Date(msg.timestamp).toLocaleString()})</span>:<br>
+                            <div style="margin-top: 5px;">${msg.content.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    `).join('')}
+                `;
+                
+                const opt = {
+                    margin: 1,
+                    filename: `buddy-ai-chat-${new Date().toISOString().slice(0, 10)}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+                
+                html2pdf()
+                    .set(opt)
+                    .from(element)
+                    .save();
+                
+                showNotification('Chat exported to PDF');
+            } catch (error) {
+                console.error('Error exporting PDF:', error);
+                showNotification('Error exporting chat to PDF', 'error');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg transition-all duration-300 transform translate-y-8 opacity-0 ${
+                type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+            }`;
+            notification.textContent = message;
+            
+            // Add to document
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-y-8', 'opacity-0');
+                notification.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-y-8', 'opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Load state from localStorage
+        function loadState() {
+            try {
+                const savedState = localStorage.getItem('buddyAIProject');
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    Object.assign(state, parsedState);
+                    
+                    // Update UI based on loaded state
+                    if (state.currentPage === 'builder') {
+                        welcomePage.classList.add('hidden');
+                        builderPage.classList.remove('hidden');
+                    }
+                    
+                    projectNameInput.value = state.projectName;
+                    currentProjectNameMenu.textContent = state.projectName;
+                    
+                    // Render chat history
+                    state.chatHistory.forEach(msg => renderChatMessage(msg));
+                    
+                    // Render file tree
+                    renderFileTree();
+                    
+                    // Update code editor
+                    updateCodeEditor();
+                    
+                    // Update preview
+                    updatePreview();
+                }
+            } catch (error) {
+                console.error('Error loading saved state:', error);
+                showNotification('Error loading saved project', 'error');
+            }
+        }
+
+        // Save state to localStorage
+        function saveState() {
+            try {
+                // Push current content to undo stack before saving
+                if (state.files[`/${state.currentFile}`]) {
+                    state.undoStack.push(state.files[`/${state.currentFile}`].content);
+                    // Keep only the last 50 states
+                    if (state.undoStack.length > 50) {
+                        state.undoStack.shift();
+                    }
+                    // Clear redo stack when new changes are made
+                    state.redoStack = [];
+                }
+                
+                localStorage.setItem('buddyAIProject', JSON.stringify(state));
+            } catch (error) {
+                console.error('Error saving state:', error);
+            }
+        }
+
+        // Initialize the app
+        init();
+    </script>
 </body>
 </html>
